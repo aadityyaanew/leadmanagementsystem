@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { INITIAL_LEADS } from "@/data/initialLeads";
 import { USER_ROLES } from "@/lib/constants";
 
-const STORAGE_KEY = "crm_lms_leads_data_v2";
 const ROLE_STORAGE_KEY = "crm_lms_current_role_v1";
 
 function normalizePhone(phone = "") {
@@ -15,61 +14,34 @@ function normalizeEmail(email = "") {
   return email.trim().toLowerCase();
 }
 
-function migrateLeadStatus(status) {
-  if (!status) return "New Lead";
-  switch (status) {
-    case "Pending":
-      return "New Lead";
-    case "Follow-up":
-      return "Registration Paid";
-    case "Admitted":
-      return "Admission Approved";
-    case "Not Interested":
-      return "Partially Fee Collected";
-    case "Cancelled":
-    case "Lost":
-      return "New Lead";
-    default:
-      return status;
-  }
-}
-
 export function useLeads() {
   const [leads, setLeads] = useState([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [currentRoleKey, setCurrentRoleKey] = useState("ADMIN");
-
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Load leads and role from localStorage on mount
-  useEffect(() => {
+  // Fetch leads from MySQL backend API on mount
+  const fetchLeadsFromDb = useCallback(async () => {
     try {
-      const savedLeads = localStorage.getItem(STORAGE_KEY);
-      if (savedLeads) {
-        const parsed = JSON.parse(savedLeads);
-        const migrated = parsed.map((lead) => ({
-          ...lead,
-          status: migrateLeadStatus(lead.status),
-        }));
-        setLeads(migrated);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
-      } else {
-        // Check for legacy v1 data
-        const legacyLeads = localStorage.getItem("crm_lms_leads_data_v1");
-        if (legacyLeads) {
-          const parsed = JSON.parse(legacyLeads);
-          const migrated = parsed.map((lead) => ({
-            ...lead,
-            status: migrateLeadStatus(lead.status),
-          }));
-          setLeads(migrated);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
-        } else {
-          setLeads(INITIAL_LEADS);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_LEADS));
-        }
+      const res = await fetch("/api/leads");
+      if (!res.ok) throw new Error("Failed to fetch leads");
+      const data = await res.json();
+      if (data.success && Array.isArray(data.leads)) {
+        setLeads(data.leads);
       }
+    } catch (e) {
+      console.error("Error fetching leads from MySQL API:", e);
+      // Fallback to initial leads if database query fails
+      setLeads((prev) => (prev.length > 0 ? prev : INITIAL_LEADS));
+    } finally {
+      setIsLoaded(true);
+    }
+  }, []);
 
+  useEffect(() => {
+    fetchLeadsFromDb();
+
+    try {
       const savedRole = localStorage.getItem(ROLE_STORAGE_KEY);
       const isAuth = localStorage.getItem("crm_lms_is_auth") === "true";
       if (savedRole && USER_ROLES[savedRole]) {
@@ -77,21 +49,9 @@ export function useLeads() {
       }
       setIsAuthenticated(isAuth);
     } catch (e) {
-      console.error("Error loading leads from localStorage:", e);
-      setLeads(INITIAL_LEADS);
-    } finally {
-      setIsLoaded(true);
+      console.error(e);
     }
-  }, []);
-
-  // Save leads to localStorage whenever state updates
-  const saveLeadsToStorage = useCallback((newLeads) => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newLeads));
-    } catch (e) {
-      console.error("Failed to persist leads:", e);
-    }
-  }, []);
+  }, [fetchLeadsFromDb]);
 
   const login = useCallback((roleKey) => {
     if (USER_ROLES[roleKey]) {
@@ -172,9 +132,9 @@ export function useLeads() {
     [leads]
   );
 
-  // Add a new lead
+  // Add a new lead (persists to MySQL)
   const addLead = useCallback(
-    (leadData) => {
+    async (leadData) => {
       const punchDate = new Date().toISOString();
       const dupCheck = checkDuplicate(leadData.mobile, leadData.email);
 
@@ -212,10 +172,9 @@ export function useLeads() {
         ],
       };
 
+      // Optimistic update
       setLeads((prev) => {
         let updated = [newLead, ...prev];
-
-        // If duplicate, increment duplicateCount on the primary lead
         if (isDup && primaryLead) {
           const targetPrimaryId = primaryLead.duplicateOfId || primaryLead.id;
           updated = updated.map((item) => {
@@ -236,22 +195,37 @@ export function useLeads() {
             return item;
           });
         }
-
-        saveLeadsToStorage(updated);
         return updated;
       });
 
+      // API call to MySQL
+      try {
+        await fetch("/api/leads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            lead: newLead,
+            updatePrimaryId: isDup && primaryLead ? (primaryLead.duplicateOfId || primaryLead.id) : null,
+          }),
+        });
+      } catch (err) {
+        console.error("Error saving lead to MySQL:", err);
+      }
+
       return { lead: newLead, duplicateInfo: dupCheck };
     },
-    [checkDuplicate, saveLeadsToStorage]
+    [checkDuplicate]
   );
 
-  // Update existing lead
+  // Update existing lead (persists to MySQL)
   const updateLead = useCallback(
-    (id, updatedFields) => {
+    async (id, updatedFields) => {
       const now = new Date().toISOString();
+
+      let targetUpdatedLead = null;
+
       setLeads((prev) => {
-        const updated = prev.map((item) => {
+        return prev.map((item) => {
           if (item.id !== id) return item;
 
           const timelineEvents = [...(item.timeline || [])];
@@ -274,18 +248,31 @@ export function useLeads() {
             });
           }
 
-          return {
+          targetUpdatedLead = {
             ...item,
             ...updatedFields,
             timeline: timelineEvents,
           };
-        });
 
-        saveLeadsToStorage(updated);
-        return updated;
+          return targetUpdatedLead;
+        });
       });
+
+      // API call to MySQL
+      try {
+        await fetch("/api/leads", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id,
+            updatedFields: targetUpdatedLead || updatedFields,
+          }),
+        });
+      } catch (err) {
+        console.error("Error updating lead in MySQL:", err);
+      }
     },
-    [saveLeadsToStorage]
+    []
   );
 
   // Quick update status
@@ -296,21 +283,25 @@ export function useLeads() {
     [updateLead]
   );
 
-  // Delete lead
+  // Delete lead (persists to MySQL)
   const deleteLead = useCallback(
-    (id) => {
-      setLeads((prev) => {
-        const updated = prev.filter((item) => item.id !== id);
-        saveLeadsToStorage(updated);
-        return updated;
-      });
+    async (id) => {
+      setLeads((prev) => prev.filter((item) => item.id !== id));
+
+      try {
+        await fetch(`/api/leads?id=${encodeURIComponent(id)}`, {
+          method: "DELETE",
+        });
+      } catch (err) {
+        console.error("Error deleting lead from MySQL:", err);
+      }
     },
-    [saveLeadsToStorage]
+    []
   );
 
-  // Add a follow-up record
+  // Add a follow-up record (persists to MySQL)
   const addFollowUp = useCallback(
-    (leadId, followUpData) => {
+    async (leadId, followUpData) => {
       const now = new Date().toISOString();
       const newFollowUp = {
         id: "fu-" + Date.now(),
@@ -318,8 +309,10 @@ export function useLeads() {
         ...followUpData,
       };
 
+      let fullUpdatedLead = null;
+
       setLeads((prev) => {
-        const updated = prev.map((lead) => {
+        return prev.map((lead) => {
           if (lead.id !== leadId) return lead;
 
           const updatedTimeline = [
@@ -331,24 +324,42 @@ export function useLeads() {
             ...(lead.timeline || []),
           ];
 
-          return {
+          fullUpdatedLead = {
             ...lead,
             status: followUpData.updateStatusTo || lead.status,
             followUps: [newFollowUp, ...(lead.followUps || [])],
             timeline: updatedTimeline,
           };
-        });
 
-        saveLeadsToStorage(updated);
-        return updated;
+          return fullUpdatedLead;
+        });
       });
+
+      try {
+        if (fullUpdatedLead) {
+          await fetch("/api/leads", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: leadId,
+              updatedFields: {
+                status: fullUpdatedLead.status,
+                followUps: fullUpdatedLead.followUps,
+                timeline: fullUpdatedLead.timeline,
+              },
+            }),
+          });
+        }
+      } catch (err) {
+        console.error("Error saving follow-up to MySQL:", err);
+      }
     },
-    [saveLeadsToStorage]
+    []
   );
 
-  // Add internal note
+  // Add internal note (persists to MySQL)
   const addNote = useCallback(
-    (leadId, noteText, authorName) => {
+    async (leadId, noteText, authorName) => {
       const now = new Date().toISOString();
       const newNote = {
         id: "note-" + Date.now(),
@@ -357,8 +368,10 @@ export function useLeads() {
         text: noteText,
       };
 
+      let fullUpdatedLead = null;
+
       setLeads((prev) => {
-        const updated = prev.map((lead) => {
+        return prev.map((lead) => {
           if (lead.id !== leadId) return lead;
 
           const updatedTimeline = [
@@ -370,26 +383,43 @@ export function useLeads() {
             ...(lead.timeline || []),
           ];
 
-          return {
+          fullUpdatedLead = {
             ...lead,
             notes: [newNote, ...(lead.notes || [])],
             timeline: updatedTimeline,
           };
-        });
 
-        saveLeadsToStorage(updated);
-        return updated;
+          return fullUpdatedLead;
+        });
       });
+
+      try {
+        if (fullUpdatedLead) {
+          await fetch("/api/leads", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: leadId,
+              updatedFields: {
+                notes: fullUpdatedLead.notes,
+                timeline: fullUpdatedLead.timeline,
+              },
+            }),
+          });
+        }
+      } catch (err) {
+        console.error("Error saving note to MySQL:", err);
+      }
     },
-    [currentRole.name, saveLeadsToStorage]
+    [currentRole.name]
   );
 
-  // Bulk status update
+  // Bulk status update (persists to MySQL)
   const bulkUpdateStatus = useCallback(
-    (leadIds, newStatus) => {
+    async (leadIds, newStatus) => {
       const now = new Date().toISOString();
       setLeads((prev) => {
-        const updated = prev.map((lead) => {
+        return prev.map((lead) => {
           if (!leadIds.includes(lead.id)) return lead;
           return {
             ...lead,
@@ -404,19 +434,31 @@ export function useLeads() {
             ],
           };
         });
-        saveLeadsToStorage(updated);
-        return updated;
       });
+
+      try {
+        await fetch("/api/leads", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "bulkUpdateStatus",
+            leadIds,
+            status: newStatus,
+          }),
+        });
+      } catch (err) {
+        console.error("Error bulk updating status in MySQL:", err);
+      }
     },
-    [saveLeadsToStorage]
+    []
   );
 
-  // Bulk assign counsellor
+  // Bulk assign counsellor (persists to MySQL)
   const bulkAssignCounsellor = useCallback(
-    (leadIds, counsellorName) => {
+    async (leadIds, counsellorName) => {
       const now = new Date().toISOString();
       setLeads((prev) => {
-        const updated = prev.map((lead) => {
+        return prev.map((lead) => {
           if (!leadIds.includes(lead.id)) return lead;
           return {
             ...lead,
@@ -431,30 +473,54 @@ export function useLeads() {
             ],
           };
         });
-        saveLeadsToStorage(updated);
-        return updated;
       });
+
+      try {
+        await fetch("/api/leads", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "bulkAssignCounsellor",
+            leadIds,
+            counsellor: counsellorName,
+          }),
+        });
+      } catch (err) {
+        console.error("Error bulk assigning counsellor in MySQL:", err);
+      }
     },
-    [saveLeadsToStorage]
+    []
   );
 
-  // Bulk delete leads
+  // Bulk delete leads (persists to MySQL)
   const bulkDeleteLeads = useCallback(
-    (leadIds) => {
-      setLeads((prev) => {
-        const updated = prev.filter((lead) => !leadIds.includes(lead.id));
-        saveLeadsToStorage(updated);
-        return updated;
-      });
+    async (leadIds) => {
+      setLeads((prev) => prev.filter((lead) => !leadIds.includes(lead.id)));
+
+      try {
+        await fetch(`/api/leads?ids=${encodeURIComponent(leadIds.join(","))}`, {
+          method: "DELETE",
+        });
+      } catch (err) {
+        console.error("Error bulk deleting leads in MySQL:", err);
+      }
     },
-    [saveLeadsToStorage]
+    []
   );
 
-  // Reset to initial sample data
-  const resetToSampleData = useCallback(() => {
+  // Reset to initial sample data in MySQL
+  const resetToSampleData = useCallback(async () => {
     setLeads(INITIAL_LEADS);
-    saveLeadsToStorage(INITIAL_LEADS);
-  }, [saveLeadsToStorage]);
+    try {
+      await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reset" }),
+      });
+    } catch (err) {
+      console.error("Error resetting data in MySQL:", err);
+    }
+  }, []);
 
   // Role-filtered leads view
   const visibleLeads = useMemo(() => {
