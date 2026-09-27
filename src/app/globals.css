@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+/* Strictly enforce Light Mode across all operating systems and browsers */
+:root,
+html,
+body {
+  color-scheme: light !important;
+  background-color: #FBFBFC !important;
+  color: #0F172A !important;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+    --primary: 0 65% 33%; /* Compare Degree Crimson #8B1E1E */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 65% 25%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 0 45% 95%;
+    --accent-foreground: 0 65% 25%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 89%;
+    --input: 0 0% 89%;
+    --ring: 0 65% 33%;
+    --radius: 0.5rem;
+  }
+}
+
+/* Compare Degree Theme Custom Variables */
+:root {
+  --brand-crimson: #8B1E1E;
+  --brand-crimson-dark: #6D1414;
+  --brand-crimson-light: #B91C1C;
+  --brand-crimson-subtle: #FDF2F2;
+  --brand-coral: #E26D5C;
+}
+
+/* Custom Sleek Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(185, 28, 28, 0.2);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(185, 28, 28, 0.5);
+}
+
+/* Pulse dot animation for active states */
+@keyframes ping-slow {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(139, 30, 30, 0.6);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(139, 30, 30, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(139, 30, 30, 0);
+  }
+}
+
+.animate-pulse-slow {
+  animation: ping-slow 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+/* Smooth Drawer Slide */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-drawer-in {
+  animation: slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Toast In Animation */
+@keyframes toastIn {
+  from {
+    transform: translateY(100%) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-toast-in {
+  animation: toastIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
