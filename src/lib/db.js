@@ -35,7 +35,6 @@ export async function initDatabase() {
       counsellor VARCHAR(255),
       status VARCHAR(64) DEFAULT 'New Lead',
       leadType VARCHAR(32) DEFAULT 'Primary',
-      batch VARCHAR(64),
       source VARCHAR(128),
       duplicateOfId VARCHAR(64),
       duplicateCount INT DEFAULT 0,

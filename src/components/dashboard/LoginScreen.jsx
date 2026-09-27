@@ -29,7 +29,7 @@ export function LoginScreen({ onLogin }) {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-100">
         <div className="text-center mb-8">
-          <img src="/logo.jpeg" alt="Logo" className="h-16 mx-auto mb-4 rounded-xl" />
+          <div className="text-4xl font-bold text-[#8B1E1E] mb-4">CMS</div>
           <h1 className="text-2xl font-bold text-slate-900">Welcome Back</h1>
           <p className="text-sm text-slate-500 mt-2">Sign in to your CRM Dashboard</p>
         </div>

@@ -30,25 +30,17 @@ export function Header({
         {/* Compare Degree Brand & Logo */}
         <div className="flex items-center gap-3.5">
           <div className="flex items-center">
-            {/* Real Logo from public/logo.jpeg */}
-            <img
-              src="/logo.jpeg"
-              alt="Compare Degree - Smart Decisions, Brighter Futures"
-              className="h-10 sm:h-11 w-auto object-contain rounded-md"
-            />
+            <div className="text-2xl font-bold text-[#8B1E1E]">CMS</div>
           </div>
 
           <div className="hidden sm:block border-l border-slate-200 pl-3">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold uppercase tracking-wider text-[#8B1E1E]">
-                Admissions CRM
-              </span>
-              <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-semibold bg-rose-50 text-[#8B1E1E] border border-rose-200">
-                PRO
+                CMS Pro
               </span>
             </div>
             <p className="text-[11px] text-slate-500 font-medium">
-              Centralized Student Lead & Admissions Tracking
+              Centralized Lead Management
             </p>
           </div>
         </div>
@@ -67,15 +59,7 @@ export function Header({
             </a>
           )}
 
-          {/* Reset Demo Data Button */}
-          <button
-            onClick={onResetData}
-            title="Reset to default seed data"
-            className="hidden md:inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-2xs"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-            <span>Reset Data</span>
-          </button>
+
 
           {/* Role Switcher Dropdown */}
           <DropdownMenu

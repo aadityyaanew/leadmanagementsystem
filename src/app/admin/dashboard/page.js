@@ -1173,7 +1173,7 @@ export default function AdminDashboard() {
       <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3.5">
-            <img src="/logo.jpeg" alt="Compare Degree" className="h-10 w-auto object-contain rounded-md" />
+            <div className="text-2xl font-bold text-[#8B1E1E]">CMS</div>
             <div className="hidden sm:block border-l border-slate-200 pl-3">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#8B1E1E]">Admin Panel</span>

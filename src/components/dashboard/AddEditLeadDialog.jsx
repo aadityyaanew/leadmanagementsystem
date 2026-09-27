@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useLeads } from "@/hooks/useLeads";
 import {
   AlertTriangle,
   User,
@@ -18,19 +19,20 @@ import {
   COURSES,
   CENTERS,
   COUNSELLORS,
-  BATCHES,
   LEAD_SOURCES,
-  ADMISSION_STATUSES,
+  LEAD_STATUSES,
 } from "@/lib/constants";
 import { formatDate } from "@/lib/utils";
 
 export function AddEditLeadDialog({
+
   open,
   onOpenChange,
   editingLead = null,
   onSave,
   checkDuplicate,
 }) {
+  const { currentRoleKey } = useLeads();
   const [formData, setFormData] = useState({
     name: "",
     mobile: "",
@@ -40,7 +42,6 @@ export function AddEditLeadDialog({
     center: CENTERS[0],
     counsellor: COUNSELLORS[0].name,
     status: "New Lead",
-    batch: BATCHES[0],
     source: LEAD_SOURCES[0],
     city: "New Delhi",
     notesText: "",
@@ -61,7 +62,6 @@ export function AddEditLeadDialog({
         center: editingLead.center || CENTERS[0],
         counsellor: editingLead.counsellor || COUNSELLORS[0].name,
         status: editingLead.status || "New Lead",
-        batch: editingLead.batch || BATCHES[0],
         source: editingLead.source || LEAD_SOURCES[0],
         city: editingLead.city || "New Delhi",
         notesText: "",
@@ -77,7 +77,6 @@ export function AddEditLeadDialog({
         center: CENTERS[0],
         counsellor: COUNSELLORS[0].name,
         status: "New Lead",
-        batch: BATCHES[0],
         source: LEAD_SOURCES[0],
         city: "New Delhi",
         notesText: "",
@@ -126,6 +125,10 @@ export function AddEditLeadDialog({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validate()) return;
+    
+    if (duplicateMatch && duplicateMatch.isDuplicate && !isEditing) {
+      return;
+    }
 
     const payload = {
       ...formData,
@@ -171,27 +174,27 @@ export function AddEditLeadDialog({
         </DialogHeader>
 
         {/* Realtime Duplicate Alert Banner */}
-        {duplicateMatch && duplicateMatch.isDuplicate && (
-          <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50/90 p-3.5 text-amber-900 animate-in fade-in slide-in-from-top-2">
+        {duplicateMatch && duplicateMatch.isDuplicate && !isEditing && (
+          <div className="mb-4 rounded-xl border border-rose-300 bg-rose-50/90 p-3.5 text-rose-900 animate-in fade-in slide-in-from-top-2">
             <div className="flex items-start gap-3">
-              <div className="p-1 rounded-md bg-amber-200 text-amber-900 shrink-0">
+              <div className="p-1 rounded-md bg-rose-200 text-rose-900 shrink-0">
                 <AlertTriangle className="h-5 w-5" />
               </div>
               <div className="text-xs">
                 <div className="font-semibold text-sm flex items-center gap-1.5">
                   <span>Duplicate Lead Detected ({duplicateMatch.matchType.toUpperCase()} MATCH)</span>
-                  <Badge variant="warning" className="text-[10px] py-0 font-semibold">
-                    Will Mark as Duplicate
+                  <Badge variant="error" className="text-[10px] py-0 font-semibold bg-rose-200 text-rose-800">
+                    Not Allowed
                   </Badge>
                 </div>
-                <p className="mt-1 leading-relaxed text-amber-900">
+                <p className="mt-1 leading-relaxed text-rose-900">
                   Matches existing candidate{" "}
                   <strong>{duplicateMatch.matchedLead.name}</strong> (
                   <span className="font-mono">{duplicateMatch.matchedLead.id}</span>), punched on{" "}
                   <strong>{formatDate(duplicateMatch.matchedLead.punchDate)}</strong>.
                 </p>
-                <p className="text-[11px] text-amber-800 mt-1">
-                  Upon submission, this entry will be saved with a <strong>Duplicate</strong> badge and automatically linked to Primary Lead <strong>#{duplicateMatch.matchedLead.duplicateOfId || duplicateMatch.matchedLead.id}</strong>.
+                <p className="text-[11px] text-rose-800 mt-1">
+                  You cannot add a duplicate lead to the system.
                 </p>
               </div>
             </div>
@@ -333,16 +336,16 @@ export function AddEditLeadDialog({
               </Select>
             </div>
 
-            {/* Admission Status */}
+            {/* Lead Status */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Admission Status
+                Lead Status
               </label>
               <Select
                 value={formData.status}
                 onChange={(e) => handleChange("status", e.target.value)}
               >
-                {Object.values(ADMISSION_STATUSES).map((status) => (
+                {Object.values(LEAD_STATUSES).filter(s => !(s.adminOnly && currentRoleKey === "COUNSELLOR")).map((status) => (
                   <option key={status.id} value={status.id}>
                     {status.label}
                   </option>
@@ -351,21 +354,6 @@ export function AddEditLeadDialog({
             </div>
 
             {/* Batch */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Intake Batch
-              </label>
-              <Select
-                value={formData.batch}
-                onChange={(e) => handleChange("batch", e.target.value)}
-              >
-                {BATCHES.map((b) => (
-                  <option key={b} value={b}>
-                    {b}
-                  </option>
-                ))}
-              </Select>
-            </div>
 
             {/* Lead Source */}
             <div>
@@ -407,8 +395,8 @@ export function AddEditLeadDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" variant="default" className="gap-1.5 font-semibold">
-              {isEditing ? "Save Changes" : duplicateMatch ? "Punch Duplicate Lead" : "Punch Primary Lead"}
+            <Button type="submit" variant="default" className="gap-1.5 font-semibold" disabled={duplicateMatch && duplicateMatch.isDuplicate && !isEditing}>
+              {isEditing ? "Save Changes" : "Punch Primary Lead"}
             </Button>
           </DialogFooter>
         </form>

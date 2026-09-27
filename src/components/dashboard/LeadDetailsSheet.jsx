@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useLeads } from "@/hooks/useLeads";
 import {
   Phone,
   Mail,
@@ -21,10 +22,11 @@ import { Sheet, SheetHeader, SheetTitle, SheetDescription, SheetContent, SheetFo
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { ADMISSION_STATUSES, COUNSELLORS, getAdmissionStatus } from "@/lib/constants";
+import { LEAD_STATUSES, COUNSELLORS, getLeadStatus } from "@/lib/constants";
 import { formatDate, formatRelativeTime, getInitials, cn } from "@/lib/utils";
 
 export function LeadDetailsSheet({
+
   lead,
   open,
   onOpenChange,
@@ -40,6 +42,7 @@ export function LeadDetailsSheet({
   canAssignCounsellor,
   allLeads = [],
 }) {
+  const { currentRoleKey } = useLeads();
   const [activeTab, setActiveTab] = useState("overview");
 
   // New follow-up form state
@@ -54,7 +57,7 @@ export function LeadDetailsSheet({
 
   if (!lead) return null;
 
-  const statusMeta = getAdmissionStatus(lead.status);
+  const statusMeta = getLeadStatus(lead.status);
   const isDuplicate = lead.leadType === "Duplicate";
 
   // Find linked primary lead if this is duplicate
@@ -315,10 +318,10 @@ export function LeadDetailsSheet({
               </div>
             )}
 
-            {/* Admission Status Selector Card */}
+            {/* Lead Status Selector Card */}
             <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
               <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
-                Current Admission Status
+                Current Lead Status
               </label>
               <div className="flex items-center gap-3">
                 <select
@@ -326,7 +329,7 @@ export function LeadDetailsSheet({
                   onChange={(e) => onStatusChange(lead.id, e.target.value)}
                   className="flex-1 h-9 rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#8B1E1E]"
                 >
-                  {Object.values(ADMISSION_STATUSES).map((status) => (
+                  {Object.values(LEAD_STATUSES).filter(s => !(s.adminOnly && currentRoleKey === "COUNSELLOR")).map((status) => (
                     <option key={status.id} value={status.id}>
                       {status.label} — {status.description}
                     </option>
@@ -383,12 +386,6 @@ export function LeadDetailsSheet({
                     <span className="text-slate-500 block">Target Course:</span>
                     <span className="font-medium text-slate-900">
                       {lead.course}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block">Intake Batch:</span>
-                    <span className="font-mono font-medium text-slate-900">
-                      {lead.batch}
                     </span>
                   </div>
                 </div>
@@ -539,7 +536,7 @@ export function LeadDetailsSheet({
 
                 <div>
                   <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                    Update Admission Status to:
+                    Update Lead Status to:
                   </label>
                   <select
                     value={followUpStatusUpdate}
@@ -547,7 +544,7 @@ export function LeadDetailsSheet({
                     className="w-full h-8 rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-800"
                   >
                     <option value="">Keep current status ({lead.status})</option>
-                    {Object.values(ADMISSION_STATUSES).map((status) => (
+                    {Object.values(LEAD_STATUSES).filter(s => !(s.adminOnly && currentRoleKey === "COUNSELLOR")).map((status) => (
                       <option key={status.id} value={status.id}>
                         {status.label}
                       </option>

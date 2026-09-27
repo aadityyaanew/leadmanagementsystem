@@ -138,16 +138,17 @@ export function useLeads() {
       const punchDate = new Date().toISOString();
       const dupCheck = checkDuplicate(leadData.mobile, leadData.email);
 
-      const isDup = dupCheck.isDuplicate;
-      const primaryLead = dupCheck.matchedLead;
+      if (dupCheck.isDuplicate) {
+        return { isDuplicate: true, duplicateInfo: dupCheck };
+      }
 
       const newId = `LD-2026-${Math.floor(1000 + Math.random() * 9000)}`;
 
       const newLead = {
         ...leadData,
         id: newId,
-        leadType: isDup ? "Duplicate" : "Primary",
-        duplicateOfId: isDup ? (primaryLead?.duplicateOfId || primaryLead?.id) : null,
+        leadType: "Primary",
+        duplicateOfId: null,
         duplicateCount: 0,
         punchDate,
         notes: leadData.notes || [],
@@ -155,10 +156,8 @@ export function useLeads() {
         timeline: [
           {
             date: punchDate,
-            event: isDup ? "Duplicate Punched" : "Lead Punched",
-            detail: isDup
-              ? `Flagged as duplicate of lead #${primaryLead?.id} (${dupCheck.matchType} match)`
-              : `Punched via ${leadData.source || "Direct Form"}`,
+            event: "Lead Punched",
+            detail: `Punched via ${leadData.source || "Direct Form"}`,
           },
           ...(leadData.counsellor
             ? [
@@ -174,28 +173,7 @@ export function useLeads() {
 
       // Optimistic update
       setLeads((prev) => {
-        let updated = [newLead, ...prev];
-        if (isDup && primaryLead) {
-          const targetPrimaryId = primaryLead.duplicateOfId || primaryLead.id;
-          updated = updated.map((item) => {
-            if (item.id === targetPrimaryId) {
-              return {
-                ...item,
-                duplicateCount: (item.duplicateCount || 0) + 1,
-                timeline: [
-                  {
-                    date: punchDate,
-                    event: "Duplicate Inquiry Linked",
-                    detail: `Duplicate lead #${newId} received via ${leadData.source || "inquiry"}`,
-                  },
-                  ...item.timeline,
-                ],
-              };
-            }
-            return item;
-          });
-        }
-        return updated;
+        return [newLead, ...prev];
       });
 
       // API call to MySQL
@@ -205,7 +183,7 @@ export function useLeads() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             lead: newLead,
-            updatePrimaryId: isDup && primaryLead ? (primaryLead.duplicateOfId || primaryLead.id) : null,
+            updatePrimaryId: null,
           }),
         });
       } catch (err) {
@@ -544,11 +522,11 @@ export function useLeads() {
     const primaryLeads = visibleLeads.filter((l) => l.leadType === "Primary").length;
     const duplicateLeads = visibleLeads.filter((l) => l.leadType === "Duplicate").length;
 
-    // 5 Admission Status metrics
+    // 5 Lead Status metrics
     const newLeads = visibleLeads.filter((l) => l.status === "New Lead" || l.status === "Pending").length;
-    const registrationPaid = visibleLeads.filter((l) => l.status === "Registration Paid" || l.status === "Follow-up").length;
-    const partiallyFeeCollected = visibleLeads.filter((l) => l.status === "Partially Fee Collected").length;
-    const feesPaid = visibleLeads.filter((l) => l.status === "Fees Paid").length;
+    const registrationPaid = visibleLeads.filter((l) => l.status === "Registration Paid" || l.status === "Follow up for Next Batch").length;
+    const partiallyFeeCollected = visibleLeads.filter((l) => l.status === "Warm" || l.status === "Hot").length;
+    const feesPaid = visibleLeads.filter((l) => l.status === "Fees Collected").length;
     const admissionApproved = visibleLeads.filter((l) => l.status === "Admission Approved" || l.status === "Admitted").length;
 
     const conversionRate = total > 0 ? ((admissionApproved / total) * 100).toFixed(1) : 0;

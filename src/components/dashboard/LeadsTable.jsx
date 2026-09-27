@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useLeads } from "@/hooks/useLeads";
 import {
   ArrowUpDown,
   ArrowUp,
@@ -22,10 +23,11 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/Dropdown";
-import { ADMISSION_STATUSES, COUNSELLORS, getAdmissionStatus } from "@/lib/constants";
+import { LEAD_STATUSES, COUNSELLORS, getLeadStatus } from "@/lib/constants";
 import { formatDate, formatRelativeTime, getInitials, cn } from "@/lib/utils";
 
 export function LeadsTable({
+
   leads,
   columnsVisibility,
   density = "default",
@@ -48,6 +50,7 @@ export function LeadsTable({
   onPageChange,
   onPageSizeChange,
 }) {
+  const { currentRoleKey } = useLeads();
   const allPageIds = leads.map((l) => l.id);
   const isAllSelected = allPageIds.length > 0 && allPageIds.every((id) => selectedIds.includes(id));
   const isSomeSelected = allPageIds.some((id) => selectedIds.includes(id)) && !isAllSelected;
@@ -190,22 +193,17 @@ export function LeadsTable({
                 </th>
               )}
 
-              {/* Admission Status */}
+              {/* Lead Status */}
               {columnsVisibility.status && (
                 <th
                   onClick={() => onSort("status")}
                   className="py-3 px-3.5 cursor-pointer hover:bg-slate-100/70 transition-colors group select-none min-w-[140px]"
                 >
                   <div className="flex items-center gap-1.5">
-                    <span>Admission Status</span>
+                    <span>Lead Status</span>
                     {getSortIcon("status")}
                   </div>
                 </th>
-              )}
-
-              {/* Batch */}
-              {columnsVisibility.batch && (
-                <th className="py-3 px-3.5 min-w-[110px]">Batch</th>
               )}
 
               {/* Actions Header */}
@@ -236,7 +234,7 @@ export function LeadsTable({
             ) : (
               paginatedLeads.map((lead) => {
                 const isSelected = selectedIds.includes(lead.id);
-                const statusMeta = getAdmissionStatus(lead.status);
+                const statusMeta = getLeadStatus(lead.status);
                 const isDuplicate = lead.leadType === "Duplicate";
 
                 return (
@@ -450,7 +448,7 @@ export function LeadsTable({
                       </td>
                     )}
 
-                    {/* Admission Status with 1-click Dropdown */}
+                    {/* Lead Status with 1-click Dropdown */}
                     {columnsVisibility.status && (
                       <td className={densityStyles[density]}>
                         <DropdownMenu
@@ -470,7 +468,7 @@ export function LeadsTable({
                           }
                         >
                           <DropdownMenuLabel>Change Status</DropdownMenuLabel>
-                          {Object.values(ADMISSION_STATUSES).map((status) => (
+                          {Object.values(LEAD_STATUSES).filter(s => !(s.adminOnly && currentRoleKey === "COUNSELLOR")).map((status) => (
                             <DropdownMenuItem
                               key={status.id}
                               onClick={() => onQuickStatusChange(lead.id, status.id)}
@@ -486,14 +484,7 @@ export function LeadsTable({
                       </td>
                     )}
 
-                    {/* Batch */}
-                    {columnsVisibility.batch && (
-                      <td className={densityStyles[density]}>
-                        <span className="inline-flex rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-700 font-mono font-medium">
-                          {lead.batch}
-                        </span>
-                      </td>
-                    )}
+
 
                     {/* Row Actions Menu */}
                     <td className={cn(densityStyles[density], "text-right")}>

@@ -35,7 +35,7 @@ export function QuickContactModal({
   const whatsappTemplates = {
     course_info: `Hello ${lead.name}, thank you for exploring ${lead.course} at ${lead.college} on Compare Degree. Here is the complete curriculum brochure and eligibility requirements. Would you like to schedule an admissions counselling call?`,
     campus_tour: `Hi ${lead.name}, our admissions team at ${lead.center} is hosting an Open House this Saturday. We'd love to invite you and your family for a campus tour. Let us know if you can make it!`,
-    scholarship: `Dear ${lead.name}, good news! Based on your profile on Compare Degree, you are eligible to apply for up to a 20% merit scholarship for the ${lead.batch} intake. Reply to know more.`,
+    scholarship: `Dear ${lead.name}, good news! Based on your profile on Compare Degree, you are eligible to apply for up to a 20% merit scholarship . Reply to know more.`,
   };
 
   const getWaMessage = () => {

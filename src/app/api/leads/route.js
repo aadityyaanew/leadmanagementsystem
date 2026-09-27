@@ -15,9 +15,9 @@ export async function GET() {
         await db.query(
           `INSERT INTO leads (
             id, name, email, mobile, college, course, center, counsellor,
-            status, leadType, batch, source, duplicateOfId, duplicateCount,
+            status, leadType, source, duplicateOfId, duplicateCount,
             punchDate, notes, followUps, timeline
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             lead.id,
             lead.name,
@@ -29,7 +29,6 @@ export async function GET() {
             lead.counsellor || null,
             lead.status || "New Lead",
             lead.leadType || "Primary",
-            lead.batch || null,
             lead.source || null,
             lead.duplicateOfId || null,
             lead.duplicateCount || 0,
@@ -72,9 +71,9 @@ export async function POST(request) {
         await db.query(
           `INSERT INTO leads (
             id, name, email, mobile, college, course, center, counsellor,
-            status, leadType, batch, source, duplicateOfId, duplicateCount,
+            status, leadType, source, duplicateOfId, duplicateCount,
             punchDate, notes, followUps, timeline
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             lead.id,
             lead.name,
@@ -86,7 +85,6 @@ export async function POST(request) {
             lead.counsellor || null,
             lead.status || "New Lead",
             lead.leadType || "Primary",
-            lead.batch || null,
             lead.source || null,
             lead.duplicateOfId || null,
             lead.duplicateCount || 0,
@@ -109,9 +107,9 @@ export async function POST(request) {
     await db.query(
       `INSERT INTO leads (
         id, name, email, mobile, college, course, center, counsellor,
-        status, leadType, batch, source, duplicateOfId, duplicateCount,
+        status, leadType, source, duplicateOfId, duplicateCount,
         punchDate, notes, followUps, timeline
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         name = VALUES(name),
         email = VALUES(email),
@@ -122,7 +120,6 @@ export async function POST(request) {
         counsellor = VALUES(counsellor),
         status = VALUES(status),
         leadType = VALUES(leadType),
-        batch = VALUES(batch),
         source = VALUES(source),
         duplicateOfId = VALUES(duplicateOfId),
         duplicateCount = VALUES(duplicateCount),
@@ -140,7 +137,6 @@ export async function POST(request) {
         lead.counsellor || null,
         lead.status || "New Lead",
         lead.leadType || "Primary",
-        lead.batch || null,
         lead.source || null,
         lead.duplicateOfId || null,
         lead.duplicateCount || 0,

@@ -1,4 +1,4 @@
-export const ADMISSION_STATUSES = {
+export const LEAD_STATUSES = {
   NEW_LEAD: {
     id: "New Lead",
     label: "New Lead",
@@ -6,7 +6,52 @@ export const ADMISSION_STATUSES = {
     bg: "bg-blue-50/90",
     border: "border-blue-200",
     dot: "bg-blue-500",
-    description: "Initial lead inquiry received, pending counsellor follow-up",
+    description: "Initial lead inquiry received",
+  },
+  HOT: {
+    id: "Hot",
+    label: "Hot",
+    color: "text-rose-700",
+    bg: "bg-rose-50/90",
+    border: "border-rose-200",
+    dot: "bg-rose-500",
+    description: "High intent to join",
+  },
+  WARM: {
+    id: "Warm",
+    label: "Warm",
+    color: "text-amber-700",
+    bg: "bg-amber-50/90",
+    border: "border-amber-200",
+    dot: "bg-amber-500",
+    description: "Moderate interest",
+  },
+  COLD: {
+    id: "Cold",
+    label: "Cold",
+    color: "text-slate-700",
+    bg: "bg-slate-50/90",
+    border: "border-slate-200",
+    dot: "bg-slate-500",
+    description: "Low interest",
+  },
+  ATTEMPTING_TO_CALL: {
+    id: "Attempting to call",
+    label: "Attempting to call",
+    color: "text-yellow-700",
+    bg: "bg-yellow-50/90",
+    border: "border-yellow-200",
+    dot: "bg-yellow-500",
+    description: "Trying to reach the lead",
+  },
+  FOLLOW_UP_NEXT_BATCH: {
+    id: "Follow up for Next Batch",
+    label: "Follow up for Next Batch",
+    color: "text-indigo-700",
+    bg: "bg-indigo-50/90",
+    border: "border-indigo-200",
+    dot: "bg-indigo-500",
+    description: "Interested for future batch",
   },
   REGISTRATION_PAID: {
     id: "Registration Paid",
@@ -15,20 +60,11 @@ export const ADMISSION_STATUSES = {
     bg: "bg-purple-50/90",
     border: "border-purple-200",
     dot: "bg-purple-500",
-    description: "Registration / application fee paid by candidate",
+    description: "Registration / application fee paid",
   },
-  PARTIALLY_FEE_COLLECTED: {
-    id: "Partially Fee Collected",
-    label: "Partially Fee Collected",
-    color: "text-amber-700",
-    bg: "bg-amber-50/90",
-    border: "border-amber-200",
-    dot: "bg-amber-500",
-    description: "Initial installment or partial admission fee collected",
-  },
-  FEES_PAID: {
-    id: "Fees Paid",
-    label: "Fees Paid",
+  FEES_COLLECTED: {
+    id: "Fees Collected",
+    label: "Fees Collected",
     color: "text-teal-700",
     bg: "bg-teal-50/90",
     border: "border-teal-200",
@@ -42,42 +78,51 @@ export const ADMISSION_STATUSES = {
     bg: "bg-emerald-50/90",
     border: "border-emerald-200",
     dot: "bg-emerald-500",
-    description: "Documents & fees verified, admission confirmed & approved",
+    description: "Admission confirmed & approved",
+    adminOnly: true,
+  },
+  DROPPED_NOT_INTERESTED: {
+    id: "Dropped Not Interested",
+    label: "Dropped Not Interested",
+    color: "text-gray-700",
+    bg: "bg-gray-50/90",
+    border: "border-gray-200",
+    dot: "bg-gray-500",
+    description: "Lead dropped or not interested",
+  },
+  CLOSED_LOST: {
+    id: "Closed Lost",
+    label: "Closed Lost",
+    color: "text-red-700",
+    bg: "bg-red-50/90",
+    border: "border-red-200",
+    dot: "bg-red-500",
+    description: "Lead lost to competition or other reasons",
   },
 };
 
-export const ADMISSION_STATUS_LIST = [
-  ADMISSION_STATUSES.NEW_LEAD,
-  ADMISSION_STATUSES.REGISTRATION_PAID,
-  ADMISSION_STATUSES.PARTIALLY_FEE_COLLECTED,
-  ADMISSION_STATUSES.FEES_PAID,
-  ADMISSION_STATUSES.ADMISSION_APPROVED,
-];
+export const LEAD_STATUS_LIST = Object.values(LEAD_STATUSES);
 
-// Non-enumerable aliases for backward compatibility so Object.values() and Object.keys() contain NO duplicates
-Object.defineProperties(ADMISSION_STATUSES, {
-  PENDING: { value: ADMISSION_STATUSES.NEW_LEAD, enumerable: false, configurable: true },
-  FOLLOW_UP: { value: ADMISSION_STATUSES.REGISTRATION_PAID, enumerable: false, configurable: true },
-  ADMITTED: { value: ADMISSION_STATUSES.ADMISSION_APPROVED, enumerable: false, configurable: true },
-  NOT_INTERESTED: { value: ADMISSION_STATUSES.NEW_LEAD, enumerable: false, configurable: true },
-  CANCELLED: { value: ADMISSION_STATUSES.NEW_LEAD, enumerable: false, configurable: true },
-  LOST: { value: ADMISSION_STATUSES.NEW_LEAD, enumerable: false, configurable: true },
+// Non-enumerable aliases for backward compatibility
+Object.defineProperties(LEAD_STATUSES, {
+  PENDING: { value: LEAD_STATUSES.NEW_LEAD, enumerable: false, configurable: true },
+  FOLLOW_UP: { value: LEAD_STATUSES.FOLLOW_UP_NEXT_BATCH, enumerable: false, configurable: true },
+  ADMITTED: { value: LEAD_STATUSES.ADMISSION_APPROVED, enumerable: false, configurable: true },
+  NOT_INTERESTED: { value: LEAD_STATUSES.DROPPED_NOT_INTERESTED, enumerable: false, configurable: true },
+  CANCELLED: { value: LEAD_STATUSES.CLOSED_LOST, enumerable: false, configurable: true },
+  LOST: { value: LEAD_STATUSES.CLOSED_LOST, enumerable: false, configurable: true },
 });
 
-/**
- * Safely retrieve status metadata for a given status string.
- */
-export function getAdmissionStatus(status) {
-  if (!status) return ADMISSION_STATUSES.NEW_LEAD;
+export function getLeadStatus(status) {
+  if (!status) return LEAD_STATUSES.NEW_LEAD;
   const key = status.toUpperCase().replace(/[\s-]+/g, "_");
-  if (ADMISSION_STATUSES[key]) {
-    return ADMISSION_STATUSES[key];
+  if (LEAD_STATUSES[key]) {
+    return LEAD_STATUSES[key];
   }
-  // Standard fallbacks
-  if (key === "PENDING") return ADMISSION_STATUSES.NEW_LEAD;
-  if (key === "FOLLOW_UP") return ADMISSION_STATUSES.REGISTRATION_PAID;
-  if (key === "ADMITTED") return ADMISSION_STATUSES.ADMISSION_APPROVED;
-  return ADMISSION_STATUSES.NEW_LEAD;
+  if (key === "PENDING") return LEAD_STATUSES.NEW_LEAD;
+  if (key === "FOLLOW_UP") return LEAD_STATUSES.FOLLOW_UP_NEXT_BATCH;
+  if (key === "ADMITTED") return LEAD_STATUSES.ADMISSION_APPROVED;
+  return LEAD_STATUSES.NEW_LEAD;
 }
 
 export const LEAD_TYPES = {
@@ -195,12 +240,6 @@ export const COURSES = [
 
 const currentYear = new Date().getFullYear();
 
-export const BATCHES = [
-  `January Intake ${currentYear}`,
-  `July Intake ${currentYear}`,
-  `January Intake ${currentYear + 1}`,
-  `July Intake ${currentYear + 1}`,
-];
 
 export const LEAD_SOURCES = [
   "CompareDegree.com Portal",

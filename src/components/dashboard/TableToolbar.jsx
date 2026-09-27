@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useLeads } from "@/hooks/useLeads";
 import {
   Search,
   X,
@@ -9,12 +10,13 @@ import {
   Check,
   Filter,
   RefreshCw,
+  Upload,
 } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { DropdownMenu, DropdownMenuLabel } from "@/components/ui/Dropdown";
 import {
-  ADMISSION_STATUSES,
+  LEAD_STATUSES,
   COLLEGES,
   COURSES,
   CENTERS,
@@ -23,6 +25,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export function TableToolbar({
+
   searchQuery,
   onSearchChange,
   filters,
@@ -33,8 +36,10 @@ export function TableToolbar({
   density,
   onDensityChange,
   onExportCSV,
+  onImportCSV,
   totalResultsCount,
 }) {
+  const { currentRoleKey } = useLeads();
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   // Count active non-default filters
@@ -47,7 +52,6 @@ export function TableToolbar({
     filters.course !== "ALL",
     filters.center !== "ALL",
     filters.counsellor !== "ALL",
-    filters.batch !== "ALL",
   ].filter(Boolean).length;
 
   const columnLabels = {
@@ -60,8 +64,7 @@ export function TableToolbar({
     leadType: "Lead Type",
     center: "Unit Name",
     counsellor: "Counsellor Name",
-    status: "Admission Status",
-    batch: "Batch",
+    status: "Lead Status",
   };
 
   return (
@@ -189,16 +192,35 @@ export function TableToolbar({
             })}
           </DropdownMenu>
 
+          {/* Upload CSV */}
+          <label className="cursor-pointer inline-flex items-center justify-center gap-1.5 h-9 rounded-md px-3 text-xs font-semibold border border-input bg-white hover:bg-slate-50 text-slate-700 hover:text-[#8B1E1E] transition-colors border-slate-200">
+            <Upload className="h-3.5 w-3.5" />
+            <span>Upload CSV</span>
+            <input
+              type="file"
+              accept=".csv"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files?.[0] && onImportCSV) {
+                  onImportCSV(e.target.files[0]);
+                  e.target.value = null;
+                }
+              }}
+            />
+          </label>
+
           {/* Export to CSV Button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onExportCSV}
-            className="gap-1.5 h-9 text-xs font-semibold text-slate-700 hover:text-[#8B1E1E] hover:border-[#8B1E1E]/40"
-          >
-            <Download className="h-3.5 w-3.5" />
-            <span>Export CSV</span>
-          </Button>
+          {currentRoleKey === "ADMIN" && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onExportCSV}
+              className="gap-1.5 h-9 text-xs font-semibold text-slate-700 hover:text-[#8B1E1E] hover:border-[#8B1E1E]/40"
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span>Export CSV</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -240,10 +262,10 @@ export function TableToolbar({
               </select>
             </div>
 
-            {/* Admission Status */}
+            {/* Lead Status */}
             <div>
               <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                Admission Status
+                Lead Status
               </label>
               <select
                 value={filters.status}
@@ -251,7 +273,7 @@ export function TableToolbar({
                 className="w-full h-8 rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#8B1E1E]"
               >
                 <option value="ALL">All Statuses</option>
-                {Object.values(ADMISSION_STATUSES).map((status) => (
+                {Object.values(LEAD_STATUSES).filter(s => !(s.adminOnly && currentRoleKey === "COUNSELLOR")).map((status) => (
                   <option key={status.id} value={status.id}>
                     {status.label}
                   </option>

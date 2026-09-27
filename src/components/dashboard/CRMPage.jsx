@@ -80,7 +80,6 @@ export function CRMPage() {
     course: "ALL",
     center: "ALL",
     counsellor: "ALL",
-    batch: "ALL",
   });
 
   // Table options state
@@ -100,7 +99,6 @@ export function CRMPage() {
     center: true,
     counsellor: true,
     status: true,
-    batch: true,
   });
 
   const [density, setDensity] = useState("default"); // compact, default, relaxed
@@ -149,7 +147,6 @@ export function CRMPage() {
       course: "ALL",
       center: "ALL",
       counsellor: "ALL",
-      batch: "ALL",
     });
     setCurrentPage(1);
     addToast({
@@ -372,8 +369,7 @@ export function CRMPage() {
         "Lead Type",
         "Unit Name",
         "Counsellor Name",
-        "Admission Status",
-        "Batch",
+        "Lead Status",
         "Source",
       ];
 
@@ -392,7 +388,6 @@ export function CRMPage() {
             `"${l.center.replace(/"/g, '""')}"`,
             `"${l.counsellor.replace(/"/g, '""')}"`,
             `"${l.status}"`,
-            `"${l.batch}"`,
             `"${l.source || ""}"`,
           ].join(",")
         ),
@@ -416,6 +411,64 @@ export function CRMPage() {
     [visibleLeads, selectedIds, addToast]
   );
 
+  const handleImportCSV = useCallback(
+    (file) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const text = e.target.result;
+        const lines = text.split(/\r?\n/).filter(line => line.trim());
+        if (lines.length < 2) {
+          addToast({ title: "Error", description: "CSV file is empty or missing headers.", type: "error" });
+          return;
+        }
+        const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ''));
+        
+        const nameIdx = headers.findIndex(h => h.toLowerCase().includes("name") && !h.toLowerCase().includes("unit") && !h.toLowerCase().includes("counsellor"));
+        const mobileIdx = headers.findIndex(h => h.toLowerCase().includes("mobile") || h.toLowerCase().includes("phone"));
+        const emailIdx = headers.findIndex(h => h.toLowerCase().includes("email"));
+        
+        if (nameIdx === -1 || mobileIdx === -1) {
+          addToast({ title: "Error", description: "CSV must contain Name and Mobile/Phone columns.", type: "error" });
+          return;
+        }
+
+        let addedCount = 0;
+        let duplicateCount = 0;
+
+        for (let i = 1; i < lines.length; i++) {
+          // Simple split by comma, ignoring commas in quotes isn't perfectly handled here but sufficient for basic CSVs
+          const row = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g)?.map(val => val.replace(/^"|"$/g, '')) || lines[i].split(",");
+          if (!row[nameIdx] || !row[mobileIdx]) continue;
+          
+          const leadData = {
+            name: row[nameIdx] || "Unknown",
+            mobile: row[mobileIdx] || "Unknown",
+            email: emailIdx !== -1 ? (row[emailIdx] || "") : "",
+            college: "Other",
+            course: "Other",
+            center: "Online",
+            source: "CSV Import"
+          };
+          
+          const result = await addLead(leadData);
+          if (result && result.duplicateInfo && result.duplicateInfo.isDuplicate) {
+            duplicateCount++;
+          } else {
+            addedCount++;
+          }
+        }
+        
+        addToast({
+          title: "CSV Import Complete",
+          description: `Imported ${addedCount} new leads. Found ${duplicateCount} duplicates.`,
+          type: "success"
+        });
+      };
+      reader.readAsText(file);
+    },
+    [addLead, addToast]
+  );
+
   // Filtered & Sorted Leads
   const processedLeads = useMemo(() => {
     let result = [...visibleLeads];
@@ -433,9 +486,9 @@ export function CRMPage() {
     } else if (presetFilter === "REGISTRATION_PAID") {
       result = result.filter((l) => l.status === "Registration Paid");
     } else if (presetFilter === "PARTIALLY_FEE_COLLECTED") {
-      result = result.filter((l) => l.status === "Partially Fee Collected");
+      result = result.filter((l) => l.status === "Warm" || l.status === "Hot");
     } else if (presetFilter === "FEES_PAID") {
-      result = result.filter((l) => l.status === "Fees Paid");
+      result = result.filter((l) => l.status === "Fees Collected");
     } else if (presetFilter === "ADMISSION_APPROVED" || presetFilter === "ADMITTED") {
       result = result.filter((l) => l.status === "Admission Approved" || l.status === "Admitted");
     }
@@ -475,9 +528,6 @@ export function CRMPage() {
     }
     if (filters.counsellor !== "ALL") {
       result = result.filter((l) => l.counsellor === filters.counsellor);
-    }
-    if (filters.batch !== "ALL") {
-      result = result.filter((l) => l.batch === filters.batch);
     }
 
     // Date range filter
@@ -545,14 +595,7 @@ export function CRMPage() {
           setEditingLead(null);
           setIsAddModalOpen(true);
         }}
-        onResetData={() => {
-          resetToSampleData();
-          addToast({
-            title: "Data Reset",
-            description: "Default Compare Degree sample leads restored.",
-            type: "info",
-          });
-        }}
+
         totalLeadsCount={leads.length}
       />
 
@@ -659,7 +702,7 @@ export function CRMPage() {
             }`}
           >
             <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-            <span>Partially Fee Collected ({metrics.partiallyFeeCollected})</span>
+            <span>Warm / Hot ({metrics.partiallyFeeCollected})</span>
           </button>
           <button
             onClick={() => setPresetFilter("FEES_PAID")}
@@ -670,7 +713,7 @@ export function CRMPage() {
             }`}
           >
             <span className="h-1.5 w-1.5 rounded-full bg-teal-500" />
-            <span>Fees Paid ({metrics.feesPaid})</span>
+            <span>Fees Collected ({metrics.feesPaid})</span>
           </button>
           <button
             onClick={() => setPresetFilter("ADMISSION_APPROVED")}
@@ -700,6 +743,7 @@ export function CRMPage() {
           density={density}
           onDensityChange={setDensity}
           onExportCSV={() => handleExportCSV(false)}
+          onImportCSV={handleImportCSV}
           totalResultsCount={processedLeads.length}
         />
 

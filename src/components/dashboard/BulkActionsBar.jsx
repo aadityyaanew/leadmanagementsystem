@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useLeads } from "@/hooks/useLeads";
 import {
   ChevronDown,
   Trash2,
@@ -10,9 +11,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuLabel } from "@/components/ui/Dropdown";
-import { ADMISSION_STATUSES, COUNSELLORS } from "@/lib/constants";
+import { LEAD_STATUSES, COUNSELLORS } from "@/lib/constants";
 
 export function BulkActionsBar({
+
   selectedIds,
   onClearSelection,
   onBulkStatusChange,
@@ -22,6 +24,7 @@ export function BulkActionsBar({
   canDelete,
   canAssign,
 }) {
+  const { currentRoleKey } = useLeads();
   if (!selectedIds || selectedIds.length === 0) return null;
 
   return (
@@ -47,7 +50,7 @@ export function BulkActionsBar({
         }
       >
         <DropdownMenuLabel>Set Status for {selectedIds.length} leads</DropdownMenuLabel>
-        {Object.values(ADMISSION_STATUSES).map((status) => (
+        {Object.values(LEAD_STATUSES).filter(s => !(s.adminOnly && currentRoleKey === "COUNSELLOR")).map((status) => (
           <DropdownMenuItem
             key={status.id}
             onClick={() => onBulkStatusChange(status.id)}
@@ -87,15 +90,17 @@ export function BulkActionsBar({
       )}
 
       {/* Export Selected */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onExportSelected}
-        className="text-xs text-slate-200 hover:text-white hover:bg-slate-800 gap-1.5 h-8 font-medium"
-      >
-        <Download className="h-3.5 w-3.5 text-slate-400" />
-        <span>Export</span>
-      </Button>
+      {currentRoleKey === "ADMIN" && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onExportSelected}
+          className="text-xs text-slate-200 hover:text-white hover:bg-slate-800 gap-1.5 h-8 font-medium"
+        >
+          <Download className="h-3.5 w-3.5 text-slate-400" />
+          <span>Export</span>
+        </Button>
+      )}
 
       {/* Delete (if role permits) */}
       {canDelete && (

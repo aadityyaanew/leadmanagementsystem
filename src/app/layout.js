@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: "Compare Degree | Admissions & Lead Management Platform",
   description:
-    "Smart Decisions, Brighter Futures — Centralized Higher Education Lead Management System & Admissions CRM for Compare Degree.",
+    "Smart Decisions, Brighter Futures — Centralized Lead Management System & CMS Pro for Compare Degree.",
 };
 
 export default function RootLayout({ children }) {
