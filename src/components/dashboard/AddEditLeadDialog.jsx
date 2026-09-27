@@ -303,77 +303,85 @@ export function AddEditLeadDialog({
             </div>
 
             {/* Center */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Unit Name
-              </label>
-              <Select
-                value={formData.center}
-                onChange={(e) => handleChange("center", e.target.value)}
-              >
-                {CENTERS.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </Select>
-            </div>
+            {currentRoleKey !== "COUNSELLOR" && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Unit Name
+                </label>
+                <Select
+                  value={formData.center}
+                  onChange={(e) => handleChange("center", e.target.value)}
+                >
+                  {CENTERS.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            )}
 
             {/* Counsellor */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Assigned Counsellor
-              </label>
-              <Select
-                value={formData.counsellor}
-                onChange={(e) => handleChange("counsellor", e.target.value)}
-              >
-                {COUNSELLORS.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </Select>
-            </div>
+            {currentRoleKey !== "COUNSELLOR" && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Assigned Counsellor
+                </label>
+                <Select
+                  value={formData.counsellor}
+                  onChange={(e) => handleChange("counsellor", e.target.value)}
+                >
+                  {COUNSELLORS.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            )}
 
             {/* Lead Status */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Lead Status
-              </label>
-              <Select
-                value={formData.status}
-                onChange={(e) => handleChange("status", e.target.value)}
-              >
-                {Object.values(LEAD_STATUSES).filter(s => !(s.adminOnly && currentRoleKey === "COUNSELLOR")).map((status) => (
-                  <option key={status.id} value={status.id}>
-                    {status.label}
-                  </option>
-                ))}
-              </Select>
-            </div>
+            {currentRoleKey !== "COUNSELLOR" && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Lead Status
+                </label>
+                <Select
+                  value={formData.status}
+                  onChange={(e) => handleChange("status", e.target.value)}
+                >
+                  {Object.values(LEAD_STATUSES).filter(s => !(s.adminOnly && currentRoleKey === "COUNSELLOR")).map((status) => (
+                    <option key={status.id} value={status.id}>
+                      {status.label}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            )}
 
             {/* Batch */}
 
             {/* Lead Source */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Lead Acquisition Source
-              </label>
-              <Select
-                value={formData.source}
-                onChange={(e) => handleChange("source", e.target.value)}
-              >
-                {LEAD_SOURCES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </Select>
-            </div>
+            {currentRoleKey !== "COUNSELLOR" && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Lead Acquisition Source
+                </label>
+                <Select
+                  value={formData.source}
+                  onChange={(e) => handleChange("source", e.target.value)}
+                >
+                  {LEAD_SOURCES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            )}
 
             {/* Initial Note (for Add mode) */}
-            {!isEditing && (
+            {!isEditing && currentRoleKey !== "COUNSELLOR" && (
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Initial Counsellor Remark / Notes
