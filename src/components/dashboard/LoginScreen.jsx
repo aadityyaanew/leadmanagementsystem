@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/Button";
 import { Eye, EyeOff } from "lucide-react";
 
 export function LoginScreen({ onLogin }) {
-  const [email, setEmail] = useState("admin@comparedegree.com");
-  const [password, setPassword] = useState("password123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 

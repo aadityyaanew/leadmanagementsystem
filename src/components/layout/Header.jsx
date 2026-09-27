@@ -7,6 +7,7 @@ import {
   RotateCcw,
   ChevronDown,
   Sparkles,
+  LayoutDashboard,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -54,6 +55,18 @@ export function Header({
 
         {/* Action Controls & Role Switcher */}
         <div className="flex items-center gap-2.5 sm:gap-3">
+          {/* Admin Panel Link - only for ADMIN role */}
+          {currentRoleKey === "ADMIN" && (
+            <a
+              href="/admin/dashboard"
+              title="Go to Admin Panel"
+              className="hidden md:inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-semibold text-[#8B1E1E] hover:bg-rose-100 transition-colors shadow-2xs"
+            >
+              <LayoutDashboard className="h-3.5 w-3.5" />
+              <span>Admin Panel</span>
+            </a>
+          )}
+
           {/* Reset Demo Data Button */}
           <button
             onClick={onResetData}
@@ -114,17 +127,21 @@ export function Header({
                 )}
               </ul>
             </div>
-            <DropdownMenuSeparator />
-            <div className="px-2 pb-1">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-                onClick={onLogout}
-              >
-                Logout
-              </Button>
-            </div>
+            {currentRoleKey !== "ADMIN" && (
+              <>
+                <DropdownMenuSeparator />
+                <div className="px-2 pb-1">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                    onClick={onLogout}
+                  >
+                    Logout
+                  </Button>
+                </div>
+              </>
+            )}
           </DropdownMenu>
 
           {/* Quick Add Lead Primary Button */}
