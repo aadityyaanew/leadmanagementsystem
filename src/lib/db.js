@@ -52,15 +52,18 @@ export async function initDatabase() {
     CREATE TABLE IF NOT EXISTS users (
       id INT AUTO_INCREMENT PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
-      email VARCHAR(255) NOT NULL UNIQUE,
+      email VARCHAR(255),
+      employee_id VARCHAR(255),
       password VARCHAR(255) NOT NULL,
-      role ENUM('BusinessManager', 'UnitHead', 'Counsellor') NOT NULL,
+      role ENUM('Admin', 'BusinessManager', 'UnitHead', 'Counsellor') NOT NULL,
       phone VARCHAR(32),
       unit_id INT,
       avatar VARCHAR(8),
       is_active TINYINT(1) DEFAULT 1,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE(email),
+      UNIQUE(employee_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
 

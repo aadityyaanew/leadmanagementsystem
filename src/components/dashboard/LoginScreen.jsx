@@ -3,8 +3,8 @@ import { USER_ROLES } from "@/lib/constants";
 import { Button } from "@/components/ui/Button";
 import { Eye, EyeOff } from "lucide-react";
 
-export function LoginScreen({ onLogin }) {
-  const [email, setEmail] = useState("");
+export function LoginScreen({ onLogin, isAdmin = false }) {
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -14,14 +14,19 @@ export function LoginScreen({ onLogin }) {
     setError("");
     
     // Find matching user
-    const matchedRoleKey = Object.keys(USER_ROLES).find(
-      (key) => USER_ROLES[key].email === email && USER_ROLES[key].password === password
-    );
+    const matchedRoleKey = Object.keys(USER_ROLES).find((key) => {
+      const role = USER_ROLES[key];
+      if (isAdmin) {
+        return key === "ADMIN" && role.email === identifier && role.password === password;
+      } else {
+        return key !== "ADMIN" && role.employeeId === identifier && role.password === password;
+      }
+    });
 
     if (matchedRoleKey) {
       onLogin(matchedRoleKey);
     } else {
-      setError("Invalid email or password. Please try again.");
+      setError(`Invalid ${isAdmin ? 'email' : 'Employee ID'} or password. Please try again.`);
     }
   };
 
@@ -30,7 +35,7 @@ export function LoginScreen({ onLogin }) {
       <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-100">
         <div className="text-center mb-8">
           <div className="text-4xl font-bold text-[#8B1E1E] mb-4">CMS</div>
-          <h1 className="text-2xl font-bold text-slate-900">Welcome Back</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{isAdmin ? "Admin Login" : "Employee Login"}</h1>
           <p className="text-sm text-slate-500 mt-2">Sign in to your CRM Dashboard</p>
         </div>
 
@@ -42,14 +47,16 @@ export function LoginScreen({ onLogin }) {
           )}
           
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700 block">Email Address</label>
+            <label className="text-sm font-semibold text-slate-700 block">
+              {isAdmin ? "Email Address" : "Employee ID"}
+            </label>
             <input 
-              type="email"
+              type={isAdmin ? "email" : "text"}
               required
               className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#8B1E1E] focus:border-transparent transition-all text-sm"
-              placeholder="name@comparedegree.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              placeholder={isAdmin ? "name@comparedegree.com" : "EMP-001"}
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
             />
           </div>
 

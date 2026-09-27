@@ -427,11 +427,11 @@ export function LeadsTable({
                             <DropdownMenuLabel>Reassign Counsellor</DropdownMenuLabel>
                             {COUNSELLORS.map((c) => (
                               <DropdownMenuItem
-                                key={c.name}
-                                onClick={() => onQuickCounsellorChange(lead.id, c.name)}
-                                className={c.name === lead.counsellor ? "bg-rose-50 text-[#8B1E1E] font-semibold" : ""}
+                                key={c}
+                                onClick={() => onQuickCounsellorChange(lead.id, c)}
+                                className={c === lead.counsellor ? "bg-rose-50 text-[#8B1E1E] font-semibold" : ""}
                               >
-                                {c.name}
+                                {c}
                               </DropdownMenuItem>
                             ))}
                           </DropdownMenu>

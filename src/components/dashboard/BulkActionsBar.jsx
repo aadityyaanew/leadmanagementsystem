@@ -80,10 +80,10 @@ export function BulkActionsBar({
           <DropdownMenuLabel>Assign {selectedIds.length} leads to</DropdownMenuLabel>
           {COUNSELLORS.map((c) => (
             <DropdownMenuItem
-              key={c.name}
-              onClick={() => onBulkAssignCounsellor(c.name)}
+              key={c}
+              onClick={() => onBulkAssignCounsellor(c)}
             >
-              <span>{c.name}</span>
+              <span>{c}</span>
             </DropdownMenuItem>
           ))}
         </DropdownMenu>

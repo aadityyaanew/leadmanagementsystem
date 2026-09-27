@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { LoginScreen } from "@/components/dashboard/LoginScreen";
 import { useLeads } from "@/hooks/useLeads";
 
-export default function RootPortal() {
+export default function LoginPage() {
   const { isAuthenticated, login, currentRoleKey, isLoaded } = useLeads();
   const router = useRouter();
 
@@ -19,20 +19,13 @@ export default function RootPortal() {
     }
   }, [isLoaded, isAuthenticated, currentRoleKey, router]);
 
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (isLoaded && !isAuthenticated) {
-      router.push("/login");
-    }
-  }, [isLoaded, isAuthenticated, router]);
-
-  if (!isAuthenticated) {
-    return null;
+  if (isLoaded && isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-slate-400 text-sm font-medium animate-pulse">Redirecting...</div>
+      </div>
+    );
   }
 
-  return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-      <div className="text-slate-400 text-sm font-medium animate-pulse">Redirecting...</div>
-    </div>
-  );
+  return <LoginScreen onLogin={login} isAdmin={false} />;
 }

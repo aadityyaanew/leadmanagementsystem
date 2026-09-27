@@ -162,7 +162,7 @@ export const USER_ROLES = {
     label: "Business Manager",
     title: "Business Manager",
     name: "Insides Sales",
-    email: "manager@comparedegree.com",
+    employeeId: "EMPBM001",
     password: "password123",
     avatar: "NK",
     permissions: {
@@ -178,7 +178,7 @@ export const USER_ROLES = {
     label: "Unit Head (College)",
     title: "Unit Head",
     name: "Navneet",
-    email: "unithead@comparedegree.com",
+    employeeId: "EMPUH001",
     password: "password123",
     avatar: "RS",
     permissions: {
@@ -194,7 +194,7 @@ export const USER_ROLES = {
     label: "Counsellor",
     title: "Senior Admissions Counsellor",
     name: "Rahul Giri",
-    email: "counsellor@comparedegree.com",
+    employeeId: "EMPC001",
     password: "password123",
     avatar: "PS",
     permissions: {
@@ -212,12 +212,8 @@ export const CENTERS = [
 ];
 
 export const COUNSELLORS = [
-  { name: "Priya Sharma", email: "priya.sharma@comparedegree.com", center: "North Campus Delhi", phone: "+91 98112 34501" },
-  { name: "Rahul Verma", email: "rahul.verma@comparedegree.com", center: "Bengaluru Central", phone: "+91 98112 34502" },
-  { name: "Ananya Sen", email: "ananya.sen@comparedegree.com", center: "Kolkata Salt Lake", phone: "+91 98112 34503" },
-  { name: "Rohan Mehta", email: "rohan.mehta@comparedegree.com", center: "Mumbai South", phone: "+91 98112 34504" },
-  { name: "Sneha Patil", email: "sneha.patil@comparedegree.com", center: "Pune Hinjewadi", phone: "+91 98112 34505" },
-  { name: "Amitav Roy", email: "amitav.roy@comparedegree.com", center: "Hyderabad Tech Hub", phone: "+91 98112 34506" },
+  "Rohit",
+  "Rahul Giri"
 ];
 
 export const COLLEGES = [

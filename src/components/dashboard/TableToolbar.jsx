@@ -350,8 +350,8 @@ export function TableToolbar({
               >
                 <option value="ALL">All Counsellors</option>
                 {COUNSELLORS.map((c) => (
-                  <option key={c.name} value={c.name}>
-                    {c.name}
+                  <option key={c} value={c}>
+                    {c}
                   </option>
                 ))}
               </select>

@@ -412,8 +412,8 @@ export function LeadDetailsSheet({
                         className="mt-1 h-7 rounded border border-slate-300 bg-white px-2 text-xs font-medium text-slate-800"
                       >
                         {COUNSELLORS.map((c) => (
-                          <option key={c.name} value={c.name}>
-                            {c.name} ({c.center})
+                          <option key={c} value={c}>
+                            {c}
                           </option>
                         ))}
                       </select>

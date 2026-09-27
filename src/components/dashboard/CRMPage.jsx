@@ -602,22 +602,6 @@ export function CRMPage() {
       {/* Main Content Area */}
       <main className="flex-1 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-6">
         {/* Role Scoping Banner (for Counsellor view) */}
-        {!currentRole.permissions.viewAllLeads && (
-          <div className="mb-5 rounded-xl border border-rose-200 bg-rose-50/70 p-3 text-xs text-[#8B1E1E] flex items-center justify-between shadow-2xs">
-            <div className="flex items-center gap-2">
-              <span className="flex h-2 w-2 rounded-full bg-[#8B1E1E] animate-pulse" />
-              <span>
-                Logged in as <strong>{currentRole.name}</strong> ({currentRole.label}). Showing assigned leads and open unassigned leads.
-              </span>
-            </div>
-            <button
-              onClick={() => switchRole("ADMIN")}
-              className="text-[#8B1E1E] underline font-bold hover:text-[#6D1414] text-[11px]"
-            >
-              Switch to Admin for full university view
-            </button>
-          </div>
-        )}
 
         {/* Top Summary Metrics Cards */}
         <MetricCards

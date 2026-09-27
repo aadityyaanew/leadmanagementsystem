@@ -23,11 +23,11 @@ export async function POST(request) {
     await initDatabase();
     const db = getDbPool();
     const body = await request.json();
-    const { name, email, password, role, phone, unit_id } = body;
+    const { name, email, employee_id, password, role, phone, unit_id } = body;
 
-    if (!name || !email || !password || !role) {
+    if (!name || (!email && !employee_id) || !password || !role) {
       return NextResponse.json(
-        { success: false, error: "Name, email, password and role are required" },
+        { success: false, error: "Name, email/employee_id, password and role are required" },
         { status: 400 }
       );
     }
@@ -39,16 +39,16 @@ export async function POST(request) {
       : name.slice(0, 2).toUpperCase();
 
     const [result] = await db.query(
-      `INSERT INTO users (name, email, password, role, phone, unit_id, avatar) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [name, email, password, role, phone || null, unit_id || null, avatar]
+      `INSERT INTO users (name, email, employee_id, password, role, phone, unit_id, avatar) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [name, email || null, employee_id || null, password, role, phone || null, unit_id || null, avatar]
     );
 
     return NextResponse.json({ success: true, id: result.insertId });
   } catch (error) {
     if (error.code === "ER_DUP_ENTRY") {
       return NextResponse.json(
-        { success: false, error: "A user with this email already exists" },
+        { success: false, error: "A user with this email or employee ID already exists" },
         { status: 409 }
       );
     }
@@ -62,7 +62,7 @@ export async function PUT(request) {
     await initDatabase();
     const db = getDbPool();
     const body = await request.json();
-    const { id, name, email, password, role, phone, unit_id, is_active } = body;
+    const { id, name, email, employee_id, password, role, phone, unit_id, is_active } = body;
 
     if (!id) {
       return NextResponse.json({ success: false, error: "id is required" }, { status: 400 });
@@ -79,7 +79,8 @@ export async function PUT(request) {
       updates.push("name = ?", "avatar = ?");
       values.push(name, avatar);
     }
-    if (email !== undefined) { updates.push("email = ?"); values.push(email); }
+    if (email !== undefined) { updates.push("email = ?"); values.push(email || null); }
+    if (employee_id !== undefined) { updates.push("employee_id = ?"); values.push(employee_id || null); }
     if (password !== undefined && password !== "") { updates.push("password = ?"); values.push(password); }
     if (role !== undefined) { updates.push("role = ?"); values.push(role); }
     if (phone !== undefined) { updates.push("phone = ?"); values.push(phone); }

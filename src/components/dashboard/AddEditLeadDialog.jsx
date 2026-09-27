@@ -40,7 +40,7 @@ export function AddEditLeadDialog({
     college: COLLEGES[0],
     course: COURSES[0],
     center: CENTERS[0],
-    counsellor: COUNSELLORS[0].name,
+    counsellor: COUNSELLORS[0],
     status: "New Lead",
     source: LEAD_SOURCES[0],
     city: "New Delhi",
@@ -60,7 +60,7 @@ export function AddEditLeadDialog({
         college: editingLead.college || COLLEGES[0],
         course: editingLead.course || COURSES[0],
         center: editingLead.center || CENTERS[0],
-        counsellor: editingLead.counsellor || COUNSELLORS[0].name,
+        counsellor: editingLead.counsellor || COUNSELLORS[0],
         status: editingLead.status || "New Lead",
         source: editingLead.source || LEAD_SOURCES[0],
         city: editingLead.city || "New Delhi",
@@ -75,7 +75,7 @@ export function AddEditLeadDialog({
         college: COLLEGES[0],
         course: COURSES[0],
         center: CENTERS[0],
-        counsellor: COUNSELLORS[0].name,
+        counsellor: COUNSELLORS[0],
         status: "New Lead",
         source: LEAD_SOURCES[0],
         city: "New Delhi",
@@ -329,8 +329,8 @@ export function AddEditLeadDialog({
                 onChange={(e) => handleChange("counsellor", e.target.value)}
               >
                 {COUNSELLORS.map((c) => (
-                  <option key={c.name} value={c.name}>
-                    {c.name} ({c.center})
+                  <option key={c} value={c}>
+                    {c}
                   </option>
                 ))}
               </Select>
