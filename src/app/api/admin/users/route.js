@@ -9,6 +9,7 @@ export async function GET() {
       `SELECT u.*, un.name AS unit_name 
        FROM users u 
        LEFT JOIN units un ON u.unit_id = un.id 
+       WHERE u.role != 'Admin'
        ORDER BY u.created_at DESC`
     );
     return NextResponse.json({ success: true, users: rows });

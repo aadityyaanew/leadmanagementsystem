@@ -237,6 +237,7 @@ function UsersSection({ toast }) {
   const [form, setForm] = useState({
     name: "",
     email: "",
+    employee_id: "",
     password: "",
     role: "Counsellor",
     phone: "",
@@ -271,7 +272,7 @@ function UsersSection({ toast }) {
 
   const openAdd = () => {
     setEditUser(null);
-    setForm({ name: "", email: "", password: "", role: "Counsellor", phone: "", unit_id: "" });
+    setForm({ name: "", email: "", employee_id: "", password: "", role: "Counsellor", phone: "", unit_id: "" });
     setShowPassword(false);
     setModalOpen(true);
   };
@@ -280,7 +281,8 @@ function UsersSection({ toast }) {
     setEditUser(u);
     setForm({
       name: u.name,
-      email: u.email,
+      email: u.email || "",
+      employee_id: u.employee_id || "",
       password: "",
       role: u.role,
       phone: u.phone || "",
@@ -291,8 +293,8 @@ function UsersSection({ toast }) {
   };
 
   const handleSave = async () => {
-    if (!form.name || !form.email || (!editUser && !form.password) || !form.role) {
-      toast("Please fill in all required fields", "error");
+    if (!form.name || (!form.email && !form.employee_id) || (!editUser && !form.password) || !form.role) {
+      toast("Please fill in all required fields (including Email or Employee ID)", "error");
       return;
     }
     setSaving(true);
@@ -509,16 +511,22 @@ function UsersSection({ toast }) {
                 ))}
               </Select>
             </Field>
-            <div className="col-span-2">
-              <Field label="Email" required>
-                <Input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                  placeholder="user@comparedegree.com"
-                />
-              </Field>
-            </div>
+            <Field label="Employee ID" required>
+              <Input
+                type="text"
+                value={form.employee_id}
+                onChange={(e) => setForm((p) => ({ ...p, employee_id: e.target.value }))}
+                placeholder="EMP-001"
+              />
+            </Field>
+            <Field label="Email">
+              <Input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                placeholder="user@comparedegree.com"
+              />
+            </Field>
             <Field label="Phone">
               <Input
                 type="tel"
@@ -1173,7 +1181,7 @@ export default function AdminDashboard() {
       <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3.5">
-            <div className="text-2xl font-bold text-[#8B1E1E]">CMS</div>
+            <img src="/logo.jpeg" alt="CMS Logo" className="h-8 w-auto object-contain" />
             <div className="hidden sm:block border-l border-slate-200 pl-3">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#8B1E1E]">Admin Panel</span>
@@ -1189,6 +1197,13 @@ export default function AdminDashboard() {
             >
               <ArrowLeft className="h-4 w-4" />
               <span className="hidden sm:inline">Back to CRM</span>
+            </a>
+            <a
+              href="/profile"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-blue-200 bg-blue-50 text-sm font-medium text-blue-600 hover:bg-blue-100 hover:text-blue-700 transition-colors"
+            >
+              <UserCog className="h-4 w-4" />
+              <span className="hidden sm:inline">Profile</span>
             </a>
             <button
               onClick={handleLogout}

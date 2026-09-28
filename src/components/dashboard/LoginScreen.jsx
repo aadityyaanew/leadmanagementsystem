@@ -8,25 +8,30 @@ export function LoginScreen({ onLogin, isAdmin = false }) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
-    
-    // Find matching user
-    const matchedRoleKey = Object.keys(USER_ROLES).find((key) => {
-      const role = USER_ROLES[key];
-      if (isAdmin) {
-        return key === "ADMIN" && role.email === identifier && role.password === password;
-      } else {
-        return key !== "ADMIN" && role.employeeId === identifier && role.password === password;
-      }
-    });
+    setLoading(true);
 
-    if (matchedRoleKey) {
-      onLogin(matchedRoleKey);
-    } else {
-      setError(`Invalid ${isAdmin ? 'email' : 'Employee ID'} or password. Please try again.`);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier, password, isAdmin }),
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        onLogin(data.roleKey);
+      } else {
+        setError(data.error || `Invalid ${isAdmin ? 'email' : 'Employee ID'} or password.`);
+      }
+    } catch (err) {
+      setError("An error occurred during login. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -34,7 +39,9 @@ export function LoginScreen({ onLogin, isAdmin = false }) {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-100">
         <div className="text-center mb-8">
-          <div className="text-4xl font-bold text-[#8B1E1E] mb-4">CMS</div>
+          <div className="flex justify-center mb-4">
+            <img src="/logo.jpeg" alt="CMS Logo" className="h-16 w-auto object-contain" />
+          </div>
           <h1 className="text-2xl font-bold text-slate-900">{isAdmin ? "Admin Login" : "Employee Login"}</h1>
           <p className="text-sm text-slate-500 mt-2">Sign in to your CRM Dashboard</p>
         </div>
@@ -84,9 +91,10 @@ export function LoginScreen({ onLogin, isAdmin = false }) {
 
           <Button 
             type="submit"
-            className="w-full py-6 text-base font-semibold shadow-md bg-[#8B1E1E] hover:bg-[#6d1414] text-white" 
+            disabled={loading}
+            className="w-full py-6 text-base font-semibold shadow-md bg-[#8B1E1E] hover:bg-[#6d1414] text-white disabled:opacity-70" 
           >
-            Login to Dashboard
+            {loading ? "Logging in..." : "Login to Dashboard"}
           </Button>
         </form>
 
