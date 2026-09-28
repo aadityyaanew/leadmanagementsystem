@@ -30,7 +30,7 @@ export function Header({
         {/* Compare Degree Brand & Logo */}
         <div className="flex items-center gap-3.5">
           <div className="flex items-center">
-            <img src="/logo.jpeg" alt="CMS Logo" className="h-8 w-auto object-contain" />
+            <img src="/logo.jpeg" alt="CMS Logo" className="h-12 w-auto object-contain mix-blend-multiply" />
           </div>
 
           <div className="hidden sm:block border-l border-slate-200 pl-3">
