@@ -8,13 +8,19 @@ import { SESSION_COOKIE, parseSessionCookie } from "@/lib/auth";
  * Returns per-counsellor lead statistics scoped to the session user's role.
  * Returns an object keyed by counsellor name with their lead counts.
  */
-export async function GET() {
+export const dynamic = "force-dynamic";
+
+export async function GET(request) {
   try {
     await initDatabase();
     const db = getDbPool();
 
-    const cookieStore = await cookies();
-    const session = parseSessionCookie(cookieStore.get(SESSION_COOKIE)?.value);
+    let sessionCookieValue = request.cookies.get(SESSION_COOKIE)?.value;
+    if (!sessionCookieValue) {
+      const cookieStore = await cookies();
+      sessionCookieValue = cookieStore.get(SESSION_COOKIE)?.value;
+    }
+    const session = parseSessionCookie(sessionCookieValue);
 
     if (!session) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });

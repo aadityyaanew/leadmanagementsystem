@@ -12,15 +12,20 @@ import { SESSION_COOKIE, parseSessionCookie } from "@/lib/auth";
  *   UnitHead → leads where the assigned counsellor belongs to their unit
  *   Counsellor → only leads assigned to themselves
  */
-export async function GET() {
+export const dynamic = "force-dynamic";
+
+export async function GET(request) {
   try {
     await initDatabase();
     const db = getDbPool();
 
-    // Read session from cookie
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get(SESSION_COOKIE);
-    const session = parseSessionCookie(sessionCookie?.value);
+    // Read session from cookie, try request.cookies first
+    let sessionCookieValue = request.cookies.get(SESSION_COOKIE)?.value;
+    if (!sessionCookieValue) {
+      const cookieStore = await cookies();
+      sessionCookieValue = cookieStore.get(SESSION_COOKIE)?.value;
+    }
+    const session = parseSessionCookie(sessionCookieValue);
 
     if (!session) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });

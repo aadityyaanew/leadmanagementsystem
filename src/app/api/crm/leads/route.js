@@ -12,13 +12,23 @@ import { SESSION_COOKIE, parseSessionCookie } from "@/lib/auth";
  * UnitHead: Leads for counsellors in their unit
  * Counsellor: Only their own assigned leads
  */
+export const dynamic = "force-dynamic";
+
 export async function GET(request) {
   try {
     await initDatabase();
     const db = getDbPool();
 
-    const cookieStore = await cookies();
-    const session = parseSessionCookie(cookieStore.get(SESSION_COOKIE)?.value);
+    // First try request.cookies (often more reliable in edge/Next.js API routes)
+    let sessionCookieValue = request.cookies.get(SESSION_COOKIE)?.value;
+    
+    // Fallback to cookies() just in case
+    if (!sessionCookieValue) {
+      const cookieStore = await cookies();
+      sessionCookieValue = cookieStore.get(SESSION_COOKIE)?.value;
+    }
+
+    const session = parseSessionCookie(sessionCookieValue);
 
     if (!session) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
