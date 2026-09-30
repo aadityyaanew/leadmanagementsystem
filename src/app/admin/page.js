@@ -3,21 +3,21 @@
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { LoginScreen } from "@/components/dashboard/LoginScreen";
-import { useLeads } from "@/hooks/useLeads";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function AdminLoginPage() {
-  const { isAuthenticated, login, currentRoleKey, isLoaded } = useLeads();
+  const { isAuthenticated, login, userRoleKey, isLoaded } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (isLoaded && isAuthenticated) {
-      if (currentRoleKey === "ADMIN") {
+      if (userRoleKey === "ADMIN") {
         router.replace("/admin/dashboard");
       } else {
         router.replace("/crm/dashboard");
       }
     }
-  }, [isLoaded, isAuthenticated, currentRoleKey, router]);
+  }, [isLoaded, isAuthenticated, userRoleKey, router]);
 
   if (isLoaded && isAuthenticated) {
     return (
