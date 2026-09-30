@@ -105,11 +105,10 @@ function Toasts({ toasts }) {
       {toasts.map((t) => (
         <div
           key={t.id}
-          className={`flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-sm font-medium border animate-toast-in ${
-            t.type === "error"
+          className={`flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-sm font-medium border animate-toast-in ${t.type === "error"
               ? "bg-red-50 text-red-700 border-red-200"
               : "bg-emerald-50 text-emerald-700 border-emerald-200"
-          }`}
+            }`}
         >
           {t.type === "error" ? (
             <XCircle className="h-4 w-4 flex-shrink-0" />
@@ -262,7 +261,7 @@ function UsersSection({ toast }) {
       const res = await fetch("/api/admin/units");
       const data = await res.json();
       if (data.success) setUnits(data.units);
-    } catch {}
+    } catch { }
   }, []);
 
   useEffect(() => {
@@ -1104,11 +1103,13 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({ users: 0, colleges: 0, courses: 0, units: 0 });
   const { toasts, add: toast } = useToast();
 
-  const handleLogout = useCallback(() => {
+  const handleLogout = useCallback(async () => {
     try {
       localStorage.setItem("crm_lms_is_auth", "false");
-    } catch (e) {}
-    window.location.href = "/";
+      localStorage.removeItem("crm_lms_user_v1");
+      await fetch("/api/auth/login", { method: "DELETE" });
+    } catch (e) { }
+    window.location.href = "/admin";
   }, []);
 
   // Check admin auth from localStorage
@@ -1119,7 +1120,7 @@ export default function AdminDashboard() {
       if (isAuth && role === "ADMIN") {
         setIsAuthenticated(true);
       }
-    } catch {}
+    } catch { }
     setCheckingAuth(false);
   }, []);
 
@@ -1138,7 +1139,7 @@ export default function AdminDashboard() {
         courses: co.success ? co.courses.length : 0,
         units: un.success ? un.units.length : 0,
       });
-    } catch {}
+    } catch { }
   }, []);
 
   useEffect(() => {
@@ -1164,12 +1165,20 @@ export default function AdminDashboard() {
           <p className="text-sm text-slate-500 mb-6">
             You must be logged in as an Admin to access this panel.
           </p>
-          <a
-            href="/"
+          <button
+            onClick={async () => {
+              try {
+                localStorage.removeItem("crm_lms_is_auth");
+                localStorage.removeItem("crm_lms_current_role_v1");
+                localStorage.removeItem("crm_lms_user_v1");
+                await fetch("/api/auth/login", { method: "DELETE" });
+              } catch (e) {}
+              window.location.href = "/admin";
+            }}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#8B1E1E] text-white text-sm font-semibold hover:bg-[#6d1414] transition-colors"
           >
             <ArrowLeft className="h-4 w-4" /> Go to Login
-          </a>
+          </button>
         </div>
       </div>
     );
@@ -1232,11 +1241,10 @@ export default function AdminDashboard() {
               <button
                 key={tab.id}
                 onClick={() => { setActiveTab(tab.id); if (tab.id === "overview") fetchStats(); }}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
-                  isActive
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${isActive
                     ? "bg-white text-[#8B1E1E] shadow-sm border border-slate-200/80 font-semibold"
                     : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
-                }`}
+                  }`}
               >
                 <Icon className="h-4 w-4" />
                 {tab.label}
