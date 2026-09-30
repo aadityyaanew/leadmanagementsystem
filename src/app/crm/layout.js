@@ -27,6 +27,7 @@ import { ROLE_PERMISSIONS, getRoleLabel, getRoleBadgeClass } from "@/lib/auth";
 export default function CRMLayout({ children }) {
   const [session, setSession] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [desktopSidebarClosed, setDesktopSidebarClosed] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
@@ -134,8 +135,10 @@ export default function CRMLayout({ children }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:sticky top-0 left-0 h-screen z-50 w-64 flex-shrink-0 bg-white border-r border-slate-200/80 flex flex-col shadow-xl lg:shadow-none transition-transform duration-300 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        className={`fixed top-0 left-0 h-screen z-50 w-64 flex-shrink-0 bg-white border-r border-slate-200/80 flex flex-col shadow-xl transition-transform duration-300 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } ${
+          !desktopSidebarClosed ? "lg:sticky lg:translate-x-0 lg:shadow-none" : "lg:fixed lg:-translate-x-full"
         }`}
       >
         {/* Brand */}
@@ -154,10 +157,14 @@ export default function CRMLayout({ children }) {
             </div>
           </div>
           <button
-            className="ml-auto lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-            onClick={() => setSidebarOpen(false)}
+            className="ml-auto p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            onClick={() => {
+              setSidebarOpen(false);
+              setDesktopSidebarClosed(true);
+            }}
+            title="Hide Sidebar"
           >
-            <X className="h-4 w-4" />
+            <Menu className="h-4 w-4" />
           </button>
         </div>
 
@@ -237,10 +244,13 @@ export default function CRMLayout({ children }) {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Mobile top bar */}
-        <div className="lg:hidden sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 h-14 flex items-center justify-between shadow-xs">
+        {/* Top bar (Always on mobile, conditionally on desktop if sidebar is hidden) */}
+        <div className={`sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 h-14 flex items-center justify-between shadow-xs ${!desktopSidebarClosed ? 'lg:hidden' : ''}`}>
           <button
-            onClick={() => setSidebarOpen(true)}
+            onClick={() => {
+              setSidebarOpen(true);
+              setDesktopSidebarClosed(false);
+            }}
             className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors"
           >
             <Menu className="h-5 w-5" />

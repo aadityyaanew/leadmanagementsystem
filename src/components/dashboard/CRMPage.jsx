@@ -22,11 +22,13 @@ import { BulkActionsBar } from "@/components/dashboard/BulkActionsBar";
 import { LoginScreen } from "@/components/dashboard/LoginScreen";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useLeads } from "@/hooks/useLeads";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/Toast";
 import { fireAdmissionConfetti } from "@/lib/confetti";
 import { formatDate } from "@/lib/utils";
 
 export function CRMPage({ embedded = false }) {
+  const { session } = useAuth();
   const {
     leads,
     visibleLeads,
@@ -592,7 +594,7 @@ export function CRMPage({ embedded = false }) {
         {/* Top bar with punch button and role info */}
         <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-            <span className="font-semibold text-slate-700">{currentRole.name}</span>
+            <span className="font-semibold text-slate-700">{session?.name || currentRole.name}</span>
             <span>·</span>
             <span>{currentRole.label}</span>
           </div>
