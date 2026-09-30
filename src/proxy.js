@@ -22,7 +22,7 @@ export function proxy(request) {
   const role = session?.role || null;
 
   // ── Public routes: redirect authenticated users ──────────────────────────
-  if (pathname === "/" || pathname === "/login") {
+  if (pathname === "/" || pathname === "/login" || pathname === "/admin") {
     if (isAuthenticated) {
       if (role === "Admin") {
         return NextResponse.redirect(new URL("/admin/dashboard", request.url));
@@ -34,9 +34,10 @@ export function proxy(request) {
   }
 
   // ── All protected routes: require authentication ─────────────────────────
+  // Note: /admin exact match is handled above. This catches /admin/dashboard, etc.
   const isProtected =
     pathname.startsWith("/crm") ||
-    pathname.startsWith("/admin") ||
+    pathname.startsWith("/admin/") ||
     pathname.startsWith("/profile");
 
   if (isProtected && !isAuthenticated) {
