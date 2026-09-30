@@ -524,8 +524,8 @@ export function useLeads() {
 
     // 5 Lead Status metrics
     const newLeads = visibleLeads.filter((l) => l.status === "New Lead" || l.status === "Pending").length;
-    const registrationPaid = visibleLeads.filter((l) => l.status === "Registration Paid" || l.status === "Follow up for Next Batch").length;
-    const partiallyFeeCollected = visibleLeads.filter((l) => l.status === "Warm" || l.status === "Hot").length;
+    const registrationPaid = visibleLeads.filter((l) => l.status === "Registration Paid").length;
+    const hotLeads = visibleLeads.filter((l) => l.status === "Hot").length;
     const feesPaid = visibleLeads.filter((l) => l.status === "Fees Collected").length;
     const admissionApproved = visibleLeads.filter((l) => l.status === "Admission Approved" || l.status === "Admitted").length;
 
@@ -538,7 +538,7 @@ export function useLeads() {
       duplicateLeads,
       newLeads,
       registrationPaid,
-      partiallyFeeCollected,
+      hotLeads,
       feesPaid,
       admissionApproved,
       // Compatibility aliases

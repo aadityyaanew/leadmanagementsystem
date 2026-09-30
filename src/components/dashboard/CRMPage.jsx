@@ -482,15 +482,15 @@ export function CRMPage() {
     } else if (presetFilter === "DUPLICATE") {
       result = result.filter((l) => l.leadType === "Duplicate");
     } else if (presetFilter === "NEW_LEAD" || presetFilter === "PENDING") {
-      result = result.filter((l) => l.status === "New Lead" || l.status === "Pending");
+      result = result.filter((l) => l.status === "New Lead");
     } else if (presetFilter === "REGISTRATION_PAID") {
       result = result.filter((l) => l.status === "Registration Paid");
-    } else if (presetFilter === "PARTIALLY_FEE_COLLECTED") {
-      result = result.filter((l) => l.status === "Warm" || l.status === "Hot");
+    } else if (presetFilter === "HOT_LEADS") {
+      result = result.filter((l) => l.status === "Hot");
     } else if (presetFilter === "FEES_PAID") {
       result = result.filter((l) => l.status === "Fees Collected");
     } else if (presetFilter === "ADMISSION_APPROVED" || presetFilter === "ADMITTED") {
-      result = result.filter((l) => l.status === "Admission Approved" || l.status === "Admitted");
+      result = result.filter((l) => l.status === "Admission Approved");
     }
 
     // 2. Global Search
@@ -620,40 +620,7 @@ export function CRMPage() {
                 : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
             }`}
           >
-            All Leads ({visibleLeads.length})
-          </button>
-          <button
-            onClick={() => setPresetFilter("TODAY")}
-            className={`px-3 py-1.5 rounded-lg border transition-all flex items-center gap-1.5 ${
-              presetFilter === "TODAY"
-                ? "bg-rose-700 text-white border-rose-700 shadow-xs font-semibold"
-                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-            }`}
-          >
-            <Calendar className="h-3 w-3" />
-            <span>Today's Leads ({metrics.todayLeads})</span>
-          </button>
-          <button
-            onClick={() => setPresetFilter("PRIMARY")}
-            className={`px-3 py-1.5 rounded-lg border transition-all flex items-center gap-1.5 ${
-              presetFilter === "PRIMARY"
-                ? "bg-[#8B1E1E] text-white border-[#8B1E1E] shadow-xs font-semibold"
-                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-            }`}
-          >
-            <Sparkles className="h-3 w-3" />
-            <span>Primary Inquiries ({metrics.primaryLeads})</span>
-          </button>
-          <button
-            onClick={() => setPresetFilter("DUPLICATE")}
-            className={`px-3 py-1.5 rounded-lg border transition-all flex items-center gap-1.5 ${
-              presetFilter === "DUPLICATE"
-                ? "bg-amber-600 text-white border-amber-600 shadow-xs font-semibold"
-                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-            }`}
-          >
-            <Copy className="h-3 w-3" />
-            <span>Duplicate Inquiries ({metrics.duplicateLeads})</span>
+            Total Leads ({visibleLeads.length})
           </button>
           <button
             onClick={() => setPresetFilter("NEW_LEAD")}
@@ -664,7 +631,18 @@ export function CRMPage() {
             }`}
           >
             <Clock className="h-3 w-3" />
-            <span>New Lead ({metrics.newLeads})</span>
+            <span>New Leads ({metrics.newLeads})</span>
+          </button>
+          <button
+            onClick={() => setPresetFilter("HOT_LEADS")}
+            className={`px-3 py-1.5 rounded-lg border transition-all flex items-center gap-1.5 ${
+              presetFilter === "HOT_LEADS"
+                ? "bg-amber-700 text-white border-amber-700 shadow-xs font-semibold"
+                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+            }`}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+            <span>Hot Leads ({metrics.hotLeads})</span>
           </button>
           <button
             onClick={() => setPresetFilter("REGISTRATION_PAID")}
@@ -676,17 +654,6 @@ export function CRMPage() {
           >
             <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
             <span>Registration Paid ({metrics.registrationPaid})</span>
-          </button>
-          <button
-            onClick={() => setPresetFilter("PARTIALLY_FEE_COLLECTED")}
-            className={`px-3 py-1.5 rounded-lg border transition-all flex items-center gap-1.5 ${
-              presetFilter === "PARTIALLY_FEE_COLLECTED"
-                ? "bg-amber-700 text-white border-amber-700 shadow-xs font-semibold"
-                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-            }`}
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-            <span>Warm / Hot ({metrics.partiallyFeeCollected})</span>
           </button>
           <button
             onClick={() => setPresetFilter("FEES_PAID")}
