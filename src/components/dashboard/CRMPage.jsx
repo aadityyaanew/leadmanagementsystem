@@ -8,6 +8,7 @@ import {
   Copy,
   Clock,
   CheckCircle2,
+  Plus,
 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { MetricCards } from "@/components/dashboard/MetricCards";
@@ -25,7 +26,7 @@ import { useToast } from "@/components/ui/Toast";
 import { fireAdmissionConfetti } from "@/lib/confetti";
 import { formatDate } from "@/lib/utils";
 
-export function CRMPage() {
+export function CRMPage({ embedded = false }) {
   const {
     leads,
     visibleLeads,
@@ -55,18 +56,18 @@ export function CRMPage() {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (isLoaded) {
+    if (isLoaded && !embedded) {
       if (!isAuthenticated) {
-        router.push("/");
+        router.push("/login");
       } else {
         if (currentRoleKey === "ADMIN" && pathname !== "/admin/crm") {
           router.replace("/admin/crm");
         } else if (currentRoleKey !== "ADMIN" && pathname === "/admin/crm") {
-          router.replace("/crm");
+          router.replace("/crm/leads");
         }
       }
     }
-  }, [isLoaded, isAuthenticated, currentRoleKey, pathname, router]);
+  }, [isLoaded, isAuthenticated, currentRoleKey, pathname, router, embedded]);
 
   // Search & Filters state
   const [searchQuery, setSearchQuery] = useState("");
@@ -582,6 +583,49 @@ export function CRMPage() {
 
   if (!isAuthenticated) {
     return null; // The useEffect will redirect
+  }
+
+  // When embedded in a layout (e.g. CRM sidebar layout), skip the outer wrapper and Header
+  if (embedded) {
+    return (
+      <>
+        {/* Top bar with punch button and role info */}
+        <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+            <span className="font-semibold text-slate-700">{currentRole.name}</span>
+            <span>·</span>
+            <span>{currentRole.label}</span>
+          </div>
+          <button
+            onClick={() => { setEditingLead(null); setIsAddModalOpen(true); }}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#8B1E1E] text-white text-sm font-semibold hover:bg-[#6d1414] transition-colors shadow-sm"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Punch New Lead</span>
+            <span className="sm:hidden">Punch</span>
+          </button>
+        </div>
+        <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-4">
+          <MetricCards metrics={metrics} activePresetFilter={presetFilter} onSelectPresetFilter={handleSelectPresetFilter} />
+          {/* Quick Filter Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 text-xs font-medium no-scrollbar">
+            <button onClick={() => setPresetFilter("ALL")} className={`px-3 py-1.5 rounded-lg border transition-all ${presetFilter === "ALL" ? "bg-[#8B1E1E] text-white border-[#8B1E1E] shadow-xs font-semibold" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}>Total ({visibleLeads.length})</button>
+            <button onClick={() => setPresetFilter("NEW_LEAD")} className={`px-3 py-1.5 rounded-lg border transition-all flex items-center gap-1 ${presetFilter === "NEW_LEAD" || presetFilter === "PENDING" ? "bg-blue-700 text-white border-blue-700 font-semibold" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}><Clock className="h-3 w-3" />New ({metrics.newLeads})</button>
+            <button onClick={() => setPresetFilter("HOT_LEADS")} className={`px-3 py-1.5 rounded-lg border transition-all flex items-center gap-1 ${presetFilter === "HOT_LEADS" ? "bg-amber-700 text-white border-amber-700 font-semibold" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}><span className="h-1.5 w-1.5 rounded-full bg-amber-500" />Hot ({metrics.hotLeads})</button>
+            <button onClick={() => setPresetFilter("REGISTRATION_PAID")} className={`px-3 py-1.5 rounded-lg border transition-all ${presetFilter === "REGISTRATION_PAID" ? "bg-purple-700 text-white border-purple-700 font-semibold" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}>Reg. Paid ({metrics.registrationPaid})</button>
+            <button onClick={() => setPresetFilter("FEES_PAID")} className={`px-3 py-1.5 rounded-lg border transition-all ${presetFilter === "FEES_PAID" ? "bg-teal-700 text-white border-teal-700 font-semibold" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}>Fees ({metrics.feesPaid})</button>
+            <button onClick={() => setPresetFilter("ADMISSION_APPROVED")} className={`px-3 py-1.5 rounded-lg border transition-all flex items-center gap-1 ${presetFilter === "ADMISSION_APPROVED" || presetFilter === "ADMITTED" ? "bg-emerald-700 text-white border-emerald-700 font-semibold" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}><CheckCircle2 className="h-3 w-3" />Admitted ({metrics.admissionApproved})</button>
+          </div>
+          <TableToolbar searchQuery={searchQuery} onSearchChange={(val) => { setSearchQuery(val); setCurrentPage(1); }} filters={filters} onFilterChange={handleFilterChange} onResetFilters={handleResetFilters} columnsVisibility={columnsVisibility} onToggleColumn={handleToggleColumn} density={density} onDensityChange={setDensity} onExportCSV={() => handleExportCSV(false)} onImportCSV={handleImportCSV} totalResultsCount={processedLeads.length} />
+          <LeadsTable leads={processedLeads} columnsVisibility={columnsVisibility} density={density} sortConfig={sortConfig} onSort={handleSort} selectedIds={selectedIds} onToggleSelectRow={handleToggleSelectRow} onToggleSelectAll={handleToggleSelectAll} onViewLead={(lead) => setViewingLead(lead)} onEditLead={(lead) => { setEditingLead(lead); setIsAddModalOpen(true); }} onDeleteLead={(lead) => setDeleteConfirmData({ open: true, lead, isBulk: false })} onQuickStatusChange={handleQuickStatusChange} onQuickCounsellorChange={handleQuickCounsellorChange} onQuickContact={handleQuickContact} canDelete={currentRole.permissions.canDeleteLeads} canAssignCounsellor={currentRole.permissions.canAssignCounsellor} currentPage={currentPage} pageSize={pageSize} onPageChange={setCurrentPage} onPageSizeChange={(newSize) => { setPageSize(newSize); setCurrentPage(1); }} />
+        </div>
+        <BulkActionsBar selectedIds={selectedIds} onClearSelection={handleClearSelection} onBulkStatusChange={handleBulkStatusChange} onBulkAssignCounsellor={handleBulkAssignCounsellor} onBulkDelete={() => setDeleteConfirmData({ open: true, lead: null, isBulk: true })} onExportSelected={() => handleExportCSV(true)} canDelete={currentRole.permissions.canDeleteLeads} canAssign={currentRole.permissions.canAssignCounsellor} />
+        <AddEditLeadDialog open={isAddModalOpen} onOpenChange={(val) => { setIsAddModalOpen(val); if (!val) setEditingLead(null); }} editingLead={editingLead} onSave={handleSaveLead} checkDuplicate={checkDuplicate} />
+        <LeadDetailsSheet open={Boolean(viewingLead)} onOpenChange={(open) => { if (!open) setViewingLead(null); }} lead={viewingLead} onEditLead={(lead) => { setEditingLead(lead); setIsAddModalOpen(true); }} onDeleteLead={(lead) => setDeleteConfirmData({ open: true, lead, isBulk: false })} onStatusChange={handleQuickStatusChange} onCounsellorChange={handleQuickCounsellorChange} onAddFollowUp={handleLogInteraction} onAddNote={(leadId, noteText) => { addNote(leadId, noteText, currentRole.name); addToast({ title: "Note Added", description: "Internal note saved.", type: "info" }); }} onQuickContact={handleQuickContact} onViewRelatedLead={(related) => setViewingLead(related)} canDelete={currentRole.permissions.canDeleteLeads} canAssignCounsellor={currentRole.permissions.canAssignCounsellor} allLeads={leads} />
+        <QuickContactModal open={contactModalData.open} onOpenChange={(val) => setContactModalData((prev) => ({ ...prev, open: val }))} lead={contactModalData.lead} type={contactModalData.type} onLogInteraction={handleLogInteraction} />
+        <DeleteConfirmDialog open={deleteConfirmData.open} onOpenChange={(val) => setDeleteConfirmData((prev) => ({ ...prev, open: val }))} targetLead={deleteConfirmData.lead} isBulk={deleteConfirmData.isBulk} count={selectedIds.length} onConfirm={handleDeleteLeadConfirm} />
+      </>
+    );
   }
 
   return (

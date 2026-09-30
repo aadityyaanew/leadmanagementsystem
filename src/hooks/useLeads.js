@@ -21,9 +21,16 @@ export function useLeads() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Fetch leads from MySQL backend API on mount
+  // Uses /api/crm/leads (role-scoped) when cookie session is available,
+  // falls back to /api/leads for backwards compat.
   const fetchLeadsFromDb = useCallback(async () => {
     try {
-      const res = await fetch("/api/leads");
+      // Try role-scoped endpoint first
+      let res = await fetch("/api/crm/leads");
+      if (!res.ok || res.status === 401) {
+        // Fall back to general leads endpoint
+        res = await fetch("/api/leads");
+      }
       if (!res.ok) throw new Error("Failed to fetch leads");
       const data = await res.json();
       if (data.success && Array.isArray(data.leads)) {
@@ -53,23 +60,29 @@ export function useLeads() {
     }
   }, [fetchLeadsFromDb]);
 
-  const login = useCallback((roleKey) => {
+  const login = useCallback((roleKey, sessionData) => {
     if (USER_ROLES[roleKey]) {
       setCurrentRoleKey(roleKey);
       setIsAuthenticated(true);
       try {
         localStorage.setItem(ROLE_STORAGE_KEY, roleKey);
         localStorage.setItem("crm_lms_is_auth", "true");
+        if (sessionData) {
+          localStorage.setItem("crm_lms_user_v1", JSON.stringify({ ...sessionData, roleKey }));
+        }
       } catch (e) {
         console.error(e);
       }
     }
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     setIsAuthenticated(false);
     try {
       localStorage.setItem("crm_lms_is_auth", "false");
+      localStorage.removeItem("crm_lms_user_v1");
+      // Clear cookie via API
+      await fetch("/api/auth/login", { method: "DELETE" }).catch(() => {});
     } catch (e) {
       console.error(e);
     }

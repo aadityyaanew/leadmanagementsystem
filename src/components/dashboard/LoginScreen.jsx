@@ -24,7 +24,7 @@ export function LoginScreen({ onLogin, isAdmin = false }) {
       const data = await res.json();
       
       if (data.success) {
-        onLogin(data.roleKey);
+        onLogin(data.roleKey, data.user);
       } else {
         setError(data.error || `Invalid ${isAdmin ? 'email' : 'Employee ID'} or password.`);
       }

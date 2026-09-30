@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDbPool, initDatabase } from "@/lib/db";
+import { SESSION_COOKIE, serializeSessionCookie } from "@/lib/auth";
 
 export async function POST(request) {
   try {
@@ -53,7 +54,7 @@ export async function POST(request) {
       );
     }
 
-    // Map DB role to USER_ROLES key
+    // Map DB role to USER_ROLES key (legacy compat for useLeads hook)
     let roleKey = "";
     switch (user.role) {
       case "Admin": roleKey = "ADMIN"; break;
@@ -63,9 +64,45 @@ export async function POST(request) {
       default: roleKey = "COUNSELLOR";
     }
 
-    return NextResponse.json({ success: true, user, roleKey });
+    // Build safe session object (no password)
+    const session = {
+      id: user.id,
+      name: user.name,
+      email: user.email || null,
+      employee_id: user.employee_id || null,
+      role: user.role,
+      roleKey,
+      unit_id: user.unit_id || null,
+      avatar: user.avatar || null,
+      phone: user.phone || null,
+    };
+
+    const response = NextResponse.json({ success: true, user: session, roleKey });
+
+    // Set a server-readable cookie for middleware + server components
+    response.cookies.set(SESSION_COOKIE, serializeSessionCookie(session), {
+      httpOnly: false, // Intentionally readable from JS so client can sync state
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      secure: process.env.NODE_ENV === "production",
+    });
+
+    return response;
   } catch (error) {
     console.error("POST /api/auth/login error:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
+}
+
+export async function DELETE() {
+  // Logout: clear the session cookie
+  const response = NextResponse.json({ success: true });
+  response.cookies.set(SESSION_COOKIE, "", {
+    httpOnly: false,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0,
+  });
+  return response;
 }
