@@ -39,7 +39,8 @@ export function formatRelativeTime(dateString) {
   return formatDate(dateString);
 }
 
-export function getInitials(name = "") {
+export function getInitials(name) {
+  if (!name || typeof name !== "string") return "";
   return name
     .split(" ")
     .filter(Boolean)
