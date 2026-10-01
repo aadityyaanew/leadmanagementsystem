@@ -1,18 +1,6 @@
 import { NextResponse } from "next/server";
 import { SESSION_COOKIE, parseSessionCookie } from "@/lib/auth";
 
-/**
- * Next.js 16 Proxy (formerly Middleware) - server-side route protection.
- *
- * Route access rules:
- *   /admin/dashboard → Admin only (role === 'Admin')
- *   /admin/crm       → Admin only
- *   /crm/units       → Admin or BusinessManager
- *   /crm/counsellors → Admin, BusinessManager, or UnitHead
- *   /crm/*           → Any authenticated user
- *   /profile         → Any authenticated user
- *   /login, /        → Unauthenticated only
- */
 export function proxy(request) {
   const { pathname } = request.nextUrl;
   const sessionCookieValue = request.cookies.get(SESSION_COOKIE)?.value;

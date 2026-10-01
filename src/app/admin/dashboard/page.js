@@ -24,6 +24,8 @@ import {
   GraduationCap,
   Landmark,
   LogOut,
+  Menu,
+  ChevronRight,
 } from "lucide-react";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -1094,12 +1096,15 @@ const TABS = [
   { id: "colleges", label: "Colleges", icon: Landmark },
   { id: "courses", label: "Courses", icon: GraduationCap },
   { id: "units", label: "Units", icon: Building2 },
+  { id: "crm", label: "CRM", icon: ArrowLeft, href: "/admin/crm" },
 ];
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [desktopSidebarClosed, setDesktopSidebarClosed] = useState(false);
   const [stats, setStats] = useState({ users: 0, colleges: 0, courses: 0, units: 0 });
   const { toasts, add: toast } = useToast();
 
@@ -1185,114 +1190,191 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FBFBFC]">
-      {/* Top Header */}
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
-            <img src="/logo.jpeg" alt="CMS Logo" className="h-12 w-auto object-contain mix-blend-multiply" />
-            <div className="hidden sm:block border-l border-slate-200 pl-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#8B1E1E]">Admin Panel</span>
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-[#8B1E1E] border border-rose-200">PRO</span>
-              </div>
-              <p className="text-[11px] text-slate-500 font-medium">System Administration & Configuration</p>
+    <div className="min-h-screen bg-[#FBFBFC] flex">
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`fixed top-0 left-0 h-screen z-50 w-64 flex-shrink-0 bg-white border-r border-slate-200/80 flex flex-col shadow-xl transition-transform duration-300 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } ${
+          !desktopSidebarClosed ? "lg:sticky lg:translate-x-0 lg:shadow-none" : "lg:fixed lg:-translate-x-full"
+        }`}
+      >
+        {/* Brand */}
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100">
+          <img
+            src="/logo.jpeg"
+            alt="CMS Logo"
+            className="h-9 w-auto object-contain mix-blend-multiply flex-shrink-0"
+          />
+          <div className="min-w-0">
+            <div className="flex items-center gap-1">
+              <div className="text-xs font-bold uppercase tracking-wider text-[#8B1E1E]">Admin</div>
+              <span className="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-semibold bg-rose-50 text-[#8B1E1E] border border-rose-200">PRO</span>
+            </div>
+            <div className="text-[10px] text-slate-500 font-medium truncate">
+              System Configuration
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <a
-              href="/admin/crm"
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">Back to CRM</span>
-            </a>
-            <a
-              href="/profile"
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-blue-200 bg-blue-50 text-sm font-medium text-blue-600 hover:bg-blue-100 hover:text-blue-700 transition-colors"
-            >
-              <UserCog className="h-4 w-4" />
-              <span className="hidden sm:inline">Profile</span>
-            </a>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-red-200 bg-red-50 text-sm font-medium text-red-600 hover:bg-red-100 hover:text-red-700 transition-colors"
-            >
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">Logout</span>
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-        {/* Page Title */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>
-          <p className="text-sm text-slate-500 mt-1">Manage users, colleges, courses and unit configurations</p>
+          <button
+            className="ml-auto p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            onClick={() => {
+              setSidebarOpen(false);
+              setDesktopSidebarClosed(true);
+            }}
+            title="Hide Sidebar"
+          >
+            <Menu className="h-4 w-4" />
+          </button>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex items-center gap-1 bg-slate-100/80 rounded-2xl p-1.5 mb-8 overflow-x-auto">
+        {/* Navigation */}
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {TABS.map((tab) => {
             const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
+            const active = activeTab === tab.id;
+            
+            if (tab.href) {
+              return (
+                <a
+                  key={tab.id}
+                  href={tab.href}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group text-slate-600 hover:text-slate-900 hover:bg-slate-100/80`}
+                >
+                  <Icon className="h-4 w-4 flex-shrink-0 transition-colors text-slate-400 group-hover:text-slate-600" />
+                  <span className="flex-1 text-left">{tab.label}</span>
+                </a>
+              );
+            }
+
             return (
               <button
                 key={tab.id}
-                onClick={() => { setActiveTab(tab.id); if (tab.id === "overview") fetchStats(); }}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${isActive
-                    ? "bg-white text-[#8B1E1E] shadow-sm border border-slate-200/80 font-semibold"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
-                  }`}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  if (tab.id === "overview") fetchStats();
+                  setSidebarOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group ${
+                  active
+                    ? "bg-[#8B1E1E]/8 text-[#8B1E1E] border border-[#8B1E1E]/15 font-semibold"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
+                }`}
               >
-                <Icon className="h-4 w-4" />
-                {tab.label}
+                <Icon
+                  className={`h-4 w-4 flex-shrink-0 transition-colors ${
+                    active ? "text-[#8B1E1E]" : "text-slate-400 group-hover:text-slate-600"
+                  }`}
+                />
+                <span className="flex-1 text-left">{tab.label}</span>
+                {active && (
+                  <ChevronRight className="h-3.5 w-3.5 text-[#8B1E1E] flex-shrink-0" />
+                )}
               </button>
             );
           })}
+        </nav>
+
+        {/* Bottom actions */}
+        <div className="px-3 py-4 border-t border-slate-100 space-y-1">
+          <a
+            href="/profile"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-all group"
+          >
+            <UserCog className="h-4 w-4 flex-shrink-0 text-slate-400 group-hover:text-blue-500 transition-colors" />
+            <span>Profile</span>
+          </a>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 transition-all group"
+          >
+            <LogOut className="h-4 w-4 flex-shrink-0 text-slate-400 group-hover:text-red-500 transition-colors" />
+            <span>Logout</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Top bar (mobile + desktop collapsed) */}
+        <div className={`sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 h-14 flex items-center justify-between shadow-xs ${!desktopSidebarClosed ? 'lg:hidden' : ''}`}>
+          <button
+            onClick={() => {
+              setSidebarOpen(true);
+              setDesktopSidebarClosed(false);
+            }}
+            className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <img
+            src="/logo.jpeg"
+            alt="CMS Logo"
+            className="h-8 w-auto object-contain mix-blend-multiply"
+          />
+          <div className="w-9" /> {/* Spacer */}
         </div>
 
-        {/* Tab Content */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 min-h-[500px]">
-          {activeTab === "overview" && (
-            <div>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-slate-900">System Overview</h2>
-                <button onClick={fetchStats} className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors">
-                  <RefreshCw className="h-3.5 w-3.5" /> Refresh
-                </button>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <StatsCard icon={Users} label="Total Users" value={stats.users} color="rose" subtitle="Business Mgr, Unit Heads, Counsellors" />
-                <StatsCard icon={Landmark} label="Colleges" value={stats.colleges} color="blue" subtitle="Partner institutions" />
-                <StatsCard icon={GraduationCap} label="Courses" value={stats.courses} color="purple" subtitle="Available programs" />
-                <StatsCard icon={Building2} label="Units" value={stats.units} color="emerald" subtitle="Sales & admission centers" />
-              </div>
-              <div className="bg-rose-50/50 border border-rose-100 rounded-2xl p-6">
-                <div className="flex items-start gap-4">
-                  <div className="h-10 w-10 rounded-xl bg-[#8B1E1E]/10 border border-rose-200 flex items-center justify-center flex-shrink-0">
-                    <Shield className="h-5 w-5 text-[#8B1E1E]" />
+        {/* Page content */}
+        <main className="flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+            {/* Page Title */}
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-slate-900">
+                {TABS.find(t => t.id === activeTab)?.label || "Admin Dashboard"}
+              </h1>
+              <p className="text-sm text-slate-500 mt-1">Manage system configurations and users</p>
+            </div>
+
+            {/* Tab Content */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 min-h-[500px]">
+              {activeTab === "overview" && (
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-lg font-bold text-slate-900">System Overview</h2>
+                    <button onClick={fetchStats} className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors">
+                      <RefreshCw className="h-3.5 w-3.5" /> Refresh
+                    </button>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-slate-900 mb-1">Admin Capabilities</h3>
-                    <ul className="text-sm text-slate-600 space-y-1 list-disc list-inside">
-                      <li>Add, edit and deactivate <strong>Business Managers</strong>, <strong>Unit Heads</strong> and <strong>Counsellors</strong></li>
-                      <li>Manage <strong>Colleges</strong> that appear in lead intake forms</li>
-                      <li>Configure <strong>Courses</strong> offered per college</li>
-                      <li>Create and assign <strong>Units</strong> (sales/admission centers) with unit heads</li>
-                      <li>All changes reflect live in the CRM lead management forms</li>
-                    </ul>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <StatsCard icon={Users} label="Total Users" value={stats.users} color="rose" subtitle="Business Mgr, Unit Heads, Counsellors" />
+                    <StatsCard icon={Landmark} label="Colleges" value={stats.colleges} color="blue" subtitle="Partner institutions" />
+                    <StatsCard icon={GraduationCap} label="Courses" value={stats.courses} color="purple" subtitle="Available programs" />
+                    <StatsCard icon={Building2} label="Units" value={stats.units} color="emerald" subtitle="Sales & admission centers" />
+                  </div>
+                  <div className="bg-rose-50/50 border border-rose-100 rounded-2xl p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="h-10 w-10 rounded-xl bg-[#8B1E1E]/10 border border-rose-200 flex items-center justify-center flex-shrink-0">
+                        <Shield className="h-5 w-5 text-[#8B1E1E]" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-slate-900 mb-1">Admin Capabilities</h3>
+                        <ul className="text-sm text-slate-600 space-y-1 list-disc list-inside">
+                          <li>Add, edit and deactivate <strong>Business Managers</strong>, <strong>Unit Heads</strong> and <strong>Counsellors</strong></li>
+                          <li>Manage <strong>Colleges</strong> that appear in lead intake forms</li>
+                          <li>Configure <strong>Courses</strong> offered per college</li>
+                          <li>Create and assign <strong>Units</strong> (sales/admission centers) with unit heads</li>
+                          <li>All changes reflect live in the CRM lead management forms</li>
+                        </ul>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
+              {activeTab === "users" && <UsersSection toast={toast} />}
+              {activeTab === "colleges" && <CollegesSection toast={toast} />}
+              {activeTab === "courses" && <CoursesSection toast={toast} />}
+              {activeTab === "units" && <UnitsSection toast={toast} />}
             </div>
-          )}
-          {activeTab === "users" && <UsersSection toast={toast} />}
-          {activeTab === "colleges" && <CollegesSection toast={toast} />}
-          {activeTab === "courses" && <CoursesSection toast={toast} />}
-          {activeTab === "units" && <UnitsSection toast={toast} />}
-        </div>
+          </div>
+        </main>
       </div>
 
       <Toasts toasts={toasts} />
