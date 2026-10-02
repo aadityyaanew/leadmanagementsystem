@@ -26,6 +26,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/Toast";
 import { fireAdmissionConfetti } from "@/lib/confetti";
 import { formatDate } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/Dialog";
+import { Button } from "@/components/ui/Button";
+import { CENTERS, COUNSELLORS } from "@/lib/constants";
+import { exportLeadsToCSV, parseLeadsCSV, assignRoundRobin } from "@/lib/csvUtils";
 
 export function CRMPage({ embedded = false }) {
   const { session } = useAuth();
@@ -127,6 +131,10 @@ export function CRMPage({ embedded = false }) {
     lead: null,
     isBulk: false,
   });
+
+  // CSV Import Config Modal
+  const [importFile, setImportFile] = useState(null);
+  const [importUnit, setImportUnit] = useState("");
 
   // Handle Preset card clicks
   const handleSelectPresetFilter = useCallback((presetId) => {
@@ -376,34 +384,11 @@ export function CRMPage({ embedded = false }) {
         "Source",
       ];
 
-      const csvRows = [
-        headers.join(","),
-        ...recordsToExport.map((l) =>
-          [
-            `"${l.id}"`,
-            `"${l.name.replace(/"/g, '""')}"`,
-            `"${formatDate(l.punchDate)}"`,
-            `"${l.mobile}"`,
-            `"${l.email}"`,
-            `"${l.college.replace(/"/g, '""')}"`,
-            `"${l.course.replace(/"/g, '""')}"`,
-            `"${l.leadType}"`,
-            `"${l.center.replace(/"/g, '""')}"`,
-            `"${l.counsellor.replace(/"/g, '""')}"`,
-            `"${l.status}"`,
-            `"${l.source || ""}"`,
-          ].join(",")
-        ),
-      ];
-
-      const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", `CompareDegree_Leads_${new Date().toISOString().slice(0, 10)}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Use shared csvUtils instead of inline blob-building
+      exportLeadsToCSV(
+        recordsToExport,
+        `CompareDegree_Leads_${new Date().toISOString().slice(0, 10)}.csv`
+      );
 
       addToast({
         title: "CSV Export Complete",
@@ -414,63 +399,53 @@ export function CRMPage({ embedded = false }) {
     [visibleLeads, selectedIds, addToast]
   );
 
-  const handleImportCSV = useCallback(
-    (file) => {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const text = e.target.result;
-        const lines = text.split(/\r?\n/).filter(line => line.trim());
-        if (lines.length < 2) {
-          addToast({ title: "Error", description: "CSV file is empty or missing headers.", type: "error" });
-          return;
-        }
-        const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ''));
-        
-        const nameIdx = headers.findIndex(h => h.toLowerCase().includes("name") && !h.toLowerCase().includes("unit") && !h.toLowerCase().includes("counsellor"));
-        const mobileIdx = headers.findIndex(h => h.toLowerCase().includes("mobile") || h.toLowerCase().includes("phone"));
-        const emailIdx = headers.findIndex(h => h.toLowerCase().includes("email"));
-        
-        if (nameIdx === -1 || mobileIdx === -1) {
-          addToast({ title: "Error", description: "CSV must contain Name and Mobile/Phone columns.", type: "error" });
-          return;
-        }
+  const handleImportCSV = useCallback((file) => {
+    setImportFile(file);
+    // Initialize default unit selection based on role
+    if (currentRoleKey === "ADMIN" || currentRoleKey === "BUSINESS_MANAGER") {
+      setImportUnit(CENTERS[0] || "");
+    } else {
+      setImportUnit("Own Unit"); // Simplified for Unit Head
+    }
+  }, [currentRoleKey]);
 
-        let addedCount = 0;
-        let duplicateCount = 0;
+  const handleConfirmImport = useCallback(async () => {
+    if (!importFile) return;
 
-        for (let i = 1; i < lines.length; i++) {
-          // Simple split by comma, ignoring commas in quotes isn't perfectly handled here but sufficient for basic CSVs
-          const row = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g)?.map(val => val.replace(/^"|"$/g, '')) || lines[i].split(",");
-          if (!row[nameIdx] || !row[mobileIdx]) continue;
-          
-          const leadData = {
-            name: row[nameIdx] || "Unknown",
-            mobile: row[mobileIdx] || "Unknown",
-            email: emailIdx !== -1 ? (row[emailIdx] || "") : "",
-            college: "Other",
-            course: "Other",
-            center: "Online",
-            source: "CSV Import"
-          };
-          
-          const result = await addLead(leadData);
-          if (result && result.duplicateInfo && result.duplicateInfo.isDuplicate) {
-            duplicateCount++;
-          } else {
-            addedCount++;
-          }
-        }
-        
-        addToast({
-          title: "CSV Import Complete",
-          description: `Imported ${addedCount} new leads. Found ${duplicateCount} duplicates.`,
-          type: "success"
-        });
+    const { rows, error } = await parseLeadsCSV(importFile);
+    if (error) {
+      addToast({ title: "Import Error", description: error, type: "error" });
+      setImportFile(null);
+      return;
+    }
+
+    // Round-robin assignment using shared utility
+    const withCounsellors = assignRoundRobin(rows, COUNSELLORS);
+
+    let addedCount = 0;
+    let duplicateCount = 0;
+
+    for (const rowData of withCounsellors) {
+      const leadData = {
+        ...rowData,
+        college: "Other",
+        course:  "Other",
+        center:  importUnit === "Own Unit" ? "Assigned Unit" : importUnit,
+        source:  "CSV Import",
       };
-      reader.readAsText(file);
-    },
-    [addLead, addToast]
-  );
+      const result = await addLead(leadData);
+      if (result?.duplicateInfo?.isDuplicate) duplicateCount++;
+      else addedCount++;
+    }
+
+    addToast({
+      title: "CSV Import Complete",
+      description: `Imported ${addedCount} new leads. Found ${duplicateCount} duplicates. Distributed via Round Robin.`,
+      type: "success",
+    });
+    setImportFile(null);
+  }, [importFile, importUnit, addLead, addToast]);
+
 
   // Filtered & Sorted Leads
   const processedLeads = useMemo(() => {
@@ -878,6 +853,53 @@ export function CRMPage({ embedded = false }) {
         count={selectedIds.length}
         onConfirm={handleDeleteLeadConfirm}
       />
+      {/* Import Config Dialog */}
+      <Dialog open={!!importFile} onOpenChange={(open) => !open && setImportFile(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Import Leads</DialogTitle>
+            <DialogDescription>
+              Leads will be automatically distributed equally among your counsellors via the Round Robin method.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-slate-600 mb-4">
+              File: <span className="font-semibold">{importFile?.name}</span>
+            </p>
+            {(currentRoleKey === "ADMIN" || currentRoleKey === "BUSINESS_MANAGER") && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Select Unit for Distribution</label>
+                <select
+                  value={importUnit}
+                  onChange={(e) => setImportUnit(e.target.value)}
+                  className="w-full h-10 rounded-lg border border-slate-300 px-3 text-sm focus:border-[#8B1E1E] focus:outline-none focus:ring-1 focus:ring-[#8B1E1E]"
+                >
+                  <option value="" disabled>Select a unit</option>
+                  {CENTERS.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-slate-500">
+                  Leads will be assigned round-robin to the counsellors in this unit.
+                </p>
+              </div>
+            )}
+            {(currentRoleKey === "UNIT_HEAD") && (
+              <div className="rounded-lg bg-blue-50 border border-blue-100 p-3">
+                <p className="text-sm text-blue-700 font-medium">
+                  Leads will be automatically distributed round-robin to your unit's counsellors.
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImportFile(null)}>Cancel</Button>
+            <Button onClick={handleConfirmImport} disabled={!importUnit && (currentRoleKey === "ADMIN" || currentRoleKey === "BUSINESS_MANAGER")} className="bg-[#8B1E1E] hover:bg-[#6d1414] text-white">
+              Confirm & Import
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
