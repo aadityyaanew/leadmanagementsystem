@@ -6,7 +6,6 @@ import {
   Plus,
   RotateCcw,
   ChevronDown,
-  Sparkles,
   LayoutDashboard,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";

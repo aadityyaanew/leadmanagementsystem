@@ -16,7 +16,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Copy,
-  Sparkles,
   GraduationCap,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -381,7 +380,6 @@ export function LeadsTable({
                         ) : (
                           <div className="inline-flex items-center gap-1">
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-[#8B1E1E] border border-rose-200">
-                              <Sparkles className="h-3 w-3" />
                               <span>Primary</span>
                             </span>
                             {lead.duplicateCount > 0 && (

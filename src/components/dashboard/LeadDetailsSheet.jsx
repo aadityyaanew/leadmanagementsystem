@@ -8,7 +8,6 @@ import {
   MessageSquare,
   Calendar,
   Clock,
-  Sparkles,
   Copy,
   Edit2,
   Trash2,
@@ -114,7 +113,7 @@ export function LeadDetailsSheet({
                   </Badge>
                 ) : (
                   <Badge variant="brand" className="gap-1 text-[11px]">
-                    <Sparkles className="h-3 w-3" /> Primary Lead
+                    Primary Lead
                   </Badge>
                 )}
               </div>

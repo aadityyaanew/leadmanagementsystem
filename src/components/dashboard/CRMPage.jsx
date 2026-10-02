@@ -4,7 +4,6 @@ import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import {
   Calendar,
-  Sparkles,
   Copy,
   Clock,
   CheckCircle2,
