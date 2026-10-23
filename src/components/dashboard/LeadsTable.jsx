@@ -8,7 +8,6 @@ import {
   ArrowDown,
   Phone,
   Mail,
-  MessageSquare,
   MoreHorizontal,
   Eye,
   Edit2,
@@ -308,7 +307,7 @@ export function LeadsTable({
                       </td>
                     )}
 
-                    {/* Mobile Number with Call & WhatsApp triggers */}
+                    {/* Mobile Number with Call trigger */}
                     {columnsVisibility.mobile && (
                       <td className={densityStyles[density]}>
                         <div className="flex items-center gap-1.5">
@@ -322,13 +321,6 @@ export function LeadsTable({
                               title="Call candidate"
                             >
                               <Phone className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              onClick={() => onQuickContact(lead, "whatsapp")}
-                              className="p-1 rounded text-slate-400 hover:text-green-700 hover:bg-green-50"
-                              title="Message on WhatsApp"
-                            >
-                              <MessageSquare className="h-3.5 w-3.5" />
                             </button>
                           </div>
                         </div>
@@ -522,10 +514,6 @@ export function LeadsTable({
                         <DropdownMenuItem onClick={() => onQuickContact(lead, "call")} className="gap-2">
                           <Phone className="h-3.5 w-3.5 text-slate-500" />
                           <span>Log Call</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onQuickContact(lead, "whatsapp")} className="gap-2">
-                          <MessageSquare className="h-3.5 w-3.5 text-slate-500" />
-                          <span>WhatsApp Message</span>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         {canDelete && (

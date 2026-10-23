@@ -49,7 +49,11 @@ export function proxy(request) {
     }
   }
 
-  // ── Admins accessing /crm → redirect to /admin/crm ─────────────────────
+  // ── Admins accessing /crm → redirect to /admin/crm or /admin/reports ──
+  if (pathname === "/crm/reports" && role === "Admin") {
+    return NextResponse.redirect(new URL("/admin/reports", request.url));
+  }
+
   if (pathname.startsWith("/crm") && role === "Admin") {
     return NextResponse.redirect(new URL("/admin/crm", request.url));
   }

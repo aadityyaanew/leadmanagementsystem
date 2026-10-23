@@ -5,7 +5,6 @@ import { useLeads } from "@/hooks/useLeads";
 import {
   Phone,
   Mail,
-  MessageSquare,
   Calendar,
   Clock,
   Copy,
@@ -146,16 +145,6 @@ export function LeadDetailsSheet({
           >
             <Phone className="h-3.5 w-3.5" />
             <span>Call</span>
-          </Button>
-
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onQuickContact(lead, "whatsapp")}
-            className="gap-1.5 h-8 text-xs text-green-700 hover:bg-green-50"
-          >
-            <MessageSquare className="h-3.5 w-3.5" />
-            <span>WhatsApp</span>
           </Button>
 
           <Button
@@ -511,7 +500,6 @@ export function LeadDetailsSheet({
                       className="w-full h-8 rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-800"
                     >
                       <option value="Phone Call">Phone Call</option>
-                      <option value="WhatsApp Chat">WhatsApp Chat</option>
                       <option value="In-Person Campus Visit">In-Person Campus Visit</option>
                       <option value="Video Consultation">Video Consultation</option>
                       <option value="Email Follow-up">Email Follow-up</option>

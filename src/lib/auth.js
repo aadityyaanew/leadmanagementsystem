@@ -39,6 +39,7 @@ export const ROLE_PERMISSIONS = {
     canViewUnits: true,
     canViewAdminPanel: true,
     canViewDashboard: true,
+    canViewReports: true,
   },
   UnitHead: {
     canViewAllLeads: false, // Only their unit's leads
@@ -58,6 +59,7 @@ export const ROLE_PERMISSIONS = {
     canViewUnits: false,
     canViewAdminPanel: false,
     canViewDashboard: true,
+    canViewReports: true,
   },
   Counsellor: {
     canViewAllLeads: false, // Only their own assigned leads
@@ -77,6 +79,7 @@ export const ROLE_PERMISSIONS = {
     canViewUnits: false,
     canViewAdminPanel: false,
     canViewDashboard: true,
+    canViewReports: true,
   },
 };
 

@@ -159,12 +159,12 @@ export const USER_ROLES = {
   },
   UNIT_HEAD: {
     id: "UnitHead",
-    label: "Unit Head (College)",
+    label: "Unit Head",
     title: "Unit Head",
-    name: "Navneet",
-    employeeId: "EMPUH001",
+    name: "CDS",
+    employeeId: "CDS-205",
     password: "password123",
-    avatar: "RS",
+    avatar: "CD",
     permissions: {
       canDeleteLeads: false,
       canBulkManage: true,
@@ -176,28 +176,27 @@ export const USER_ROLES = {
   COUNSELLOR: {
     id: "Counsellor",
     label: "Counsellor",
-    title: "Senior Admissions Counsellor",
-    name: "Rahul Giri",
-    employeeId: "EMPC001",
+    title: "Admissions Counsellor",
+    name: "Rohit Sharma",
+    employeeId: "EMP111",
     password: "password123",
-    avatar: "PS",
+    avatar: "RS",
     permissions: {
       canDeleteLeads: false,
       canBulkManage: false,
       canAssignCounsellor: false,
       canExport: false,
-      viewAllLeads: false, // filter to Priya Sharma + unassigned
+      viewAllLeads: false,
     },
   },
 };
 
 export const CENTERS = [
-  "Unit Name Inside Sales"
+  "U1"
 ];
 
 export const COUNSELLORS = [
-  "Rohit",
-  "Rahul Giri"
+  "Rohit Sharma"
 ];
 
 export const COLLEGES = [];

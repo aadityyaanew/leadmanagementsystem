@@ -32,16 +32,24 @@ export default function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [desktopCollapsed, setDesktopCollapsed] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(null);
+  const [userRole, setUserRole] = useState(null);
 
   useEffect(() => {
     try {
       const role = localStorage.getItem("crm_lms_current_role_v1");
       const isAuth = localStorage.getItem("crm_lms_is_auth") === "true";
-      setIsAuthenticated(isAuth && role === "ADMIN");
+      setUserRole(role);
+      // On /admin/reports, any authenticated user is allowed
+      if (pathname.startsWith("/admin/reports")) {
+        setIsAuthenticated(isAuth && Boolean(role));
+      } else {
+        // Other admin pages require ADMIN role
+        setIsAuthenticated(isAuth && role === "ADMIN");
+      }
     } catch {
       setIsAuthenticated(false);
     }
-  }, []);
+  }, [pathname]);
 
   const handleLogout = useCallback(async () => {
     try {
@@ -128,7 +136,11 @@ export default function AdminLayout({ children }) {
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {NAV_ITEMS.map((item) => {
+          {(userRole === "ADMIN" ? NAV_ITEMS : [
+            { href: "/admin/reports", label: userRole === "UNIT_HEAD" ? "Call Reports" : "Reports", icon: BarChart3, exact: true },
+            { href: "/crm/dashboard", label: "Dashboard", icon: LayoutDashboard },
+            { href: "/crm/leads", label: "Leads", icon: Users },
+          ]).map((item) => {
             const Icon = item.icon;
             const active = isActive(item);
             return (

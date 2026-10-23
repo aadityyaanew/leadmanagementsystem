@@ -110,10 +110,10 @@ export default function CRMLayout({ children }) {
       show: permissions.canViewUnits,
     },
     {
-      href: "/admin/reports",
-      label: "Reports",
+      href: "/crm/reports",
+      label: role === "UnitHead" ? "Call Reports" : "Reports",
       icon: BarChart3,
-      show: session?.role === "Admin" || permissions.canViewUnits,
+      show: true,
     },
   ];
 

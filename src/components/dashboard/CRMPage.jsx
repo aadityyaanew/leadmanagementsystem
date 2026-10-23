@@ -830,7 +830,7 @@ export function CRMPage({ embedded = false }) {
         allLeads={leads}
       />
 
-      {/* Quick Contact Modal (Call log / WhatsApp / Email) */}
+      {/* Quick Contact Modal (Call log / Email) */}
       <QuickContactModal
         open={contactModalData.open}
         onOpenChange={(val) =>
