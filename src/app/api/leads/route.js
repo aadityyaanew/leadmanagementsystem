@@ -241,6 +241,32 @@ export async function PUT(request) {
       );
     }
 
+    // If this update includes a new follow-up interaction, record to call_logs
+    if (body.followUpLog) {
+      const { counsellor, mode, outcome, notes, disposition } = body.followUpLog;
+      // Get lead details (name, phone, counsellor)
+      const [leadRows] = await db.query(
+        "SELECT name, mobile, counsellor FROM leads WHERE id = ? LIMIT 1",
+        [id]
+      );
+      const leadData = leadRows[0] || {};
+      const counsellorName = counsellor || leadData.counsellor || "Unassigned";
+
+      await db.query(
+        `INSERT INTO call_logs (lead_id, lead_name, lead_phone, counsellor_name, call_type, disposition, notes)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          leadData.name || null,
+          leadData.mobile || null,
+          counsellorName,
+          mode || "Phone Call",
+          disposition || outcome || "Call logged",
+          notes || outcome || "",
+        ]
+      );
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("PUT /api/leads error:", error);

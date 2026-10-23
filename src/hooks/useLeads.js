@@ -338,6 +338,13 @@ export function useLeads() {
                 followUps: fullUpdatedLead.followUps,
                 timeline: fullUpdatedLead.timeline,
               },
+              followUpLog: {
+                counsellor: followUpData.counsellor,
+                mode: followUpData.mode,
+                outcome: followUpData.outcome,
+                disposition: followUpData.disposition,
+                notes: followUpData.notes,
+              },
             }),
           });
         }

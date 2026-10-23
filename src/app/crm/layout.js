@@ -14,6 +14,7 @@ import {
   X,
   Shield,
   UserCog,
+  BarChart3,
 } from "lucide-react";
 import { ROLE_PERMISSIONS, getRoleLabel, getRoleBadgeClass } from "@/lib/auth";
 
@@ -107,6 +108,12 @@ export default function CRMLayout({ children }) {
       label: "Units",
       icon: Building2,
       show: permissions.canViewUnits,
+    },
+    {
+      href: "/admin/reports",
+      label: "Reports",
+      icon: BarChart3,
+      show: session?.role === "Admin" || permissions.canViewUnits,
     },
   ];
 

@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
-export function DropdownMenu({ trigger, children, align = "right", className }) {
+export function DropdownMenu({ trigger, children, align = "right", side = "bottom", className }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -28,7 +28,8 @@ export function DropdownMenu({ trigger, children, align = "right", className }) 
       {open && (
         <div
           className={cn(
-            "absolute z-40 mt-1.5 w-56 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl transition-all animate-in fade-in zoom-in-95 duration-100",
+            "absolute z-50 w-56 rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xl transition-all animate-in fade-in zoom-in-95 duration-100",
+            side === "top" ? "bottom-full mb-2" : "top-full mt-1.5",
             align === "right" ? "right-0" : "left-0",
             className
           )}

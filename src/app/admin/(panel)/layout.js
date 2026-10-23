@@ -15,6 +15,7 @@ import {
   UserCog,
   Shield,
   ArrowLeft,
+  BarChart3,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
   { href: "/admin/colleges",  label: "Colleges",  icon: Landmark },
   { href: "/admin/courses",   label: "Courses",   icon: GraduationCap },
   { href: "/admin/units",     label: "Units",     icon: Building2 },
+  { href: "/admin/reports",   label: "Reports",   icon: BarChart3 },
 ];
 
 export default function AdminLayout({ children }) {

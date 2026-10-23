@@ -40,16 +40,19 @@ export function BulkActionsBar({
   if (!selectedIds || selectedIds.length === 0) return null;
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-2xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-white shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
-      <div className="flex items-center gap-2 pr-3 border-r border-slate-700">
-        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#8B1E1E] text-xs font-bold text-white shadow-xs">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900/95 backdrop-blur-md px-4 py-2 text-white shadow-2xl ring-1 ring-white/10 animate-in fade-in slide-in-from-bottom-4 duration-200">
+      <div className="flex items-center gap-2 pr-3 border-r border-slate-700/80">
+        <span className="flex h-5 min-w-5 px-1.5 items-center justify-center rounded-full bg-[#8B1E1E] text-[11px] font-bold text-white shadow-xs">
           {selectedIds.length}
         </span>
-        <span className="text-xs font-medium text-slate-200">Selected</span>
+        <span className="text-xs font-medium text-slate-300">Selected</span>
       </div>
 
       {/* Quick Status Update */}
       <DropdownMenu
+        side="top"
+        align="left"
+        className="max-h-72 overflow-y-auto mb-2"
         trigger={
           <Button
             variant="ghost"
@@ -77,6 +80,9 @@ export function BulkActionsBar({
       {/* Bulk Assign Counsellor */}
       {canAssign && (
         <DropdownMenu
+          side="top"
+          align="left"
+          className="max-h-72 overflow-y-auto mb-2"
           trigger={
             <Button
               variant="ghost"

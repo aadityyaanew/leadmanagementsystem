@@ -105,5 +105,25 @@ export async function initDatabase() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
 
+  // Create call_logs table (records every call/outreach interaction by counsellors)
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS call_logs (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      lead_id VARCHAR(64) NOT NULL,
+      lead_name VARCHAR(255),
+      lead_phone VARCHAR(32),
+      counsellor_name VARCHAR(255) NOT NULL,
+      counsellor_id INT,
+      call_type VARCHAR(64) DEFAULT 'Phone Call',
+      disposition VARCHAR(128),
+      notes TEXT,
+      duration INT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_call_created (created_at),
+      INDEX idx_call_counsellor (counsellor_name),
+      INDEX idx_call_lead (lead_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
+
   return db;
 }

@@ -46,6 +46,7 @@ export function QuickContactModal({
     const encoded = encodeURIComponent(getWaMessage());
     window.open(`https://wa.me/${rawPhone}?text=${encoded}`, "_blank");
     onLogInteraction?.(lead.id, {
+      counsellor: lead.counsellor,
       mode: "WhatsApp Chat",
       outcome: `Sent WhatsApp message (${whatsappTemplate})`,
     });
@@ -58,7 +59,10 @@ export function QuickContactModal({
 
   const handleSaveCallLog = () => {
     onLogInteraction?.(lead.id, {
+      counsellor: lead.counsellor,
       mode: "Phone Call",
+      disposition: callDisposition,
+      notes: callNotes,
       outcome: `${callDisposition}: ${callNotes || "Call logged"}`,
     });
     onOpenChange(false);
@@ -68,6 +72,7 @@ export function QuickContactModal({
     const body = emailBody || `Hello ${lead.name},\n\nRegarding your application for ${lead.course} at ${lead.college} on Compare Degree...\n\nBest regards,\n${lead.counsellor}\nAdmissions Office\nCompare Degree (Smart Decisions, Brighter Futures)`;
     window.open(`mailto:${lead.email}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(body)}`, "_blank");
     onLogInteraction?.(lead.id, {
+      counsellor: lead.counsellor,
       mode: "Email Follow-up",
       outcome: `Sent email with subject: '${emailSubject}'`,
     });
