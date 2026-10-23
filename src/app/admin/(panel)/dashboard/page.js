@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Users, Landmark, GraduationCap, Building2, RefreshCw, Shield } from "lucide-react";
+import { Users, Landmark, GraduationCap, Building2, RefreshCw, Shield, PhoneCall } from "lucide-react";
 
 function StatsCard({ icon: Icon, label, value, color, subtitle }) {
   const colors = {
@@ -9,6 +9,7 @@ function StatsCard({ icon: Icon, label, value, color, subtitle }) {
     blue:    "bg-blue-50 text-blue-700 border-blue-100",
     purple:  "bg-purple-50 text-purple-700 border-purple-100",
     emerald: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    amber:   "bg-amber-50 text-amber-700 border-amber-100",
   };
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md transition-all">
@@ -27,23 +28,25 @@ function StatsCard({ icon: Icon, label, value, color, subtitle }) {
 }
 
 export default function AdminOverviewPage() {
-  const [stats, setStats] = useState({ users: 0, colleges: 0, courses: 0, units: 0 });
+  const [stats, setStats] = useState({ users: 0, colleges: 0, courses: 0, units: 0, todayCalls: 0 });
   const [loading, setLoading] = useState(true);
 
   const fetchStats = useCallback(async () => {
     setLoading(true);
     try {
-      const [u, c, co, un] = await Promise.all([
+      const [u, c, co, un, rep] = await Promise.all([
         fetch("/api/admin/users").then(r => r.json()),
         fetch("/api/admin/colleges").then(r => r.json()),
         fetch("/api/admin/courses").then(r => r.json()),
         fetch("/api/admin/units").then(r => r.json()),
+        fetch("/api/admin/reports?dateRange=today").then(r => r.json()).catch(() => ({})),
       ]);
       setStats({
-        users:    u.success   ? u.users.length    : 0,
-        colleges: c.success   ? c.colleges.length : 0,
-        courses:  co.success  ? co.courses.length : 0,
-        units:    un.success  ? un.units.length   : 0,
+        users:      u.success   ? u.users.length    : 0,
+        colleges:   c.success   ? c.colleges.length : 0,
+        courses:    co.success  ? co.courses.length : 0,
+        units:      un.success  ? un.units.length   : 0,
+        todayCalls: rep.success && rep.todaySummary ? (rep.todaySummary.total_today || 0) : 0,
       });
     } catch {}
     finally { setLoading(false); }
@@ -66,11 +69,12 @@ export default function AdminOverviewPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <StatsCard icon={Users}        label="Total Users"  value={stats.users}    color="rose"    subtitle="Unit Heads & Counsellors" />
         <StatsCard icon={Landmark}     label="Colleges"     value={stats.colleges} color="blue"    subtitle="Partner institutions" />
         <StatsCard icon={GraduationCap} label="Courses"     value={stats.courses}  color="purple"  subtitle="Available programs" />
         <StatsCard icon={Building2}    label="Units"        value={stats.units}    color="emerald" subtitle="Sales & admission centers" />
+        <StatsCard icon={PhoneCall}    label="Today's Calls" value={stats.todayCalls} color="amber"  subtitle="Outreach logged today" />
       </div>
 
       <div className="bg-rose-50/50 border border-rose-100 rounded-2xl p-6">
@@ -82,10 +86,10 @@ export default function AdminOverviewPage() {
             <h3 className="font-semibold text-slate-900 mb-1">Admin Capabilities</h3>
             <ul className="text-sm text-slate-600 space-y-1 list-disc list-inside">
               <li>Add, edit and deactivate <strong>Unit Heads</strong> and <strong>Counsellors</strong></li>
-              <li>Manage <strong>Colleges</strong> that appear in lead intake forms</li>
-              <li>Configure <strong>Courses</strong> offered per college</li>
-              <li>Create and assign <strong>Units</strong> (sales/admission centers) with unit heads</li>
-              <li>All changes reflect live in the CRM lead management forms</li>
+              <li>Manage <strong>Colleges</strong> and <strong>Courses</strong> that appear dynamically in lead forms</li>
+              <li>Create and assign <strong>Units</strong> (sales & admission centers) with unit heads</li>
+              <li>View <strong>Reports</strong> to monitor daily counsellor call volume and interaction history</li>
+              <li>All changes reflect live in the CRM lead management workflows</li>
             </ul>
           </div>
         </div>
