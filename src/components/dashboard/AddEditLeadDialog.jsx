@@ -25,7 +25,6 @@ import {
 import { formatDate } from "@/lib/utils";
 
 export function AddEditLeadDialog({
-
   open,
   onOpenChange,
   editingLead = null,
@@ -33,14 +32,23 @@ export function AddEditLeadDialog({
   checkDuplicate,
 }) {
   const { currentRoleKey } = useLeads();
+  const [options, setOptions] = useState({
+    colleges: [],
+    courses: [],
+    rawCourses: [],
+    rawColleges: [],
+    units: [],
+    counsellors: [],
+  });
+
   const [formData, setFormData] = useState({
     name: "",
     mobile: "",
     email: "",
-    college: COLLEGES[0],
-    course: COURSES[0],
-    center: CENTERS[0],
-    counsellor: COUNSELLORS[0],
+    college: "",
+    course: "",
+    center: "",
+    counsellor: "",
     status: "New Lead",
     source: LEAD_SOURCES[0],
     city: "New Delhi",
@@ -50,6 +58,41 @@ export function AddEditLeadDialog({
   const [errors, setErrors] = useState({});
   const [duplicateMatch, setDuplicateMatch] = useState(null);
 
+  // Fetch dynamic options from DB on mount and when modal opens
+  useEffect(() => {
+    if (!open) return;
+    let isMounted = true;
+    fetch("/api/crm/options")
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted && data.success) {
+          setOptions({
+            colleges: data.colleges || [],
+            courses: data.courses || [],
+            rawCourses: data.rawCourses || [],
+            rawColleges: data.rawColleges || [],
+            units: data.units || [],
+            counsellors: data.counsellors || [],
+          });
+        }
+      })
+      .catch((err) => console.error("Error fetching form options:", err));
+    return () => {
+      isMounted = false;
+    };
+  }, [open]);
+
+  // Available courses filtered by selected college if college is selected
+  const availableCourses = React.useMemo(() => {
+    if (!formData.college) return options.courses;
+    const selectedCol = options.rawColleges.find((c) => c.name === formData.college);
+    if (!selectedCol) return options.courses;
+    const matched = options.rawCourses.filter(
+      (c) => c.college_id === selectedCol.id || !c.college_id
+    );
+    return matched.length > 0 ? matched.map((c) => c.name) : options.courses;
+  }, [formData.college, options]);
+
   // Initialize form when editing or opening
   useEffect(() => {
     if (editingLead) {
@@ -57,10 +100,10 @@ export function AddEditLeadDialog({
         name: editingLead.name || "",
         mobile: editingLead.mobile || "",
         email: editingLead.email || "",
-        college: editingLead.college || COLLEGES[0],
-        course: editingLead.course || COURSES[0],
-        center: editingLead.center || CENTERS[0],
-        counsellor: editingLead.counsellor || COUNSELLORS[0],
+        college: editingLead.college || "",
+        course: editingLead.course || "",
+        center: editingLead.center || "",
+        counsellor: editingLead.counsellor || "",
         status: editingLead.status || "New Lead",
         source: editingLead.source || LEAD_SOURCES[0],
         city: editingLead.city || "New Delhi",
@@ -72,10 +115,10 @@ export function AddEditLeadDialog({
         name: "",
         mobile: "+91 ",
         email: "",
-        college: COLLEGES[0],
-        course: COURSES[0],
-        center: CENTERS[0],
-        counsellor: COUNSELLORS[0],
+        college: "",
+        course: "",
+        center: "",
+        counsellor: "",
         status: "New Lead",
         source: LEAD_SOURCES[0],
         city: "New Delhi",
@@ -275,13 +318,21 @@ export function AddEditLeadDialog({
               </label>
               <Select
                 value={formData.college}
-                onChange={(e) => handleChange("college", e.target.value)}
+                onChange={(e) => {
+                  handleChange("college", e.target.value);
+                  // Reset course if selected course does not belong to new college
+                  handleChange("course", "");
+                }}
               >
-                {COLLEGES.map((c) => (
+                <option value="">-- Select College --</option>
+                {options.colleges.map((c) => (
                   <option key={c} value={c}>
                     {c}
                   </option>
                 ))}
+                {options.colleges.length === 0 && (
+                  <option value="" disabled>No colleges in database</option>
+                )}
               </Select>
             </div>
 
@@ -294,11 +345,15 @@ export function AddEditLeadDialog({
                 value={formData.course}
                 onChange={(e) => handleChange("course", e.target.value)}
               >
-                {COURSES.map((c) => (
+                <option value="">-- Select Course --</option>
+                {availableCourses.map((c) => (
                   <option key={c} value={c}>
                     {c}
                   </option>
                 ))}
+                {availableCourses.length === 0 && (
+                  <option value="" disabled>No courses available</option>
+                )}
               </Select>
             </div>
 
@@ -312,11 +367,15 @@ export function AddEditLeadDialog({
                   value={formData.center}
                   onChange={(e) => handleChange("center", e.target.value)}
                 >
-                  {CENTERS.map((c) => (
+                  <option value="">-- Select Unit --</option>
+                  {options.units.map((c) => (
                     <option key={c} value={c}>
                       {c}
                     </option>
                   ))}
+                  {options.units.length === 0 && (
+                    <option value="" disabled>No units in database</option>
+                  )}
                 </Select>
               </div>
             )}
@@ -331,11 +390,15 @@ export function AddEditLeadDialog({
                   value={formData.counsellor}
                   onChange={(e) => handleChange("counsellor", e.target.value)}
                 >
-                  {COUNSELLORS.map((c) => (
+                  <option value="">-- Select Counsellor --</option>
+                  {options.counsellors.map((c) => (
                     <option key={c} value={c}>
                       {c}
                     </option>
                   ))}
+                  {options.counsellors.length === 0 && (
+                    <option value="" disabled>No counsellors in database</option>
+                  )}
                 </Select>
               </div>
             )}

@@ -200,23 +200,9 @@ export const COUNSELLORS = [
   "Rahul Giri"
 ];
 
-export const COLLEGES = [
-  "Shoolini University"
-];
+export const COLLEGES = [];
 
-export const COURSES = [
-  "Premium MBA",
-  "MBA",
-  "MCA",
-  "M.Com",
-  "MSC Data Science",
-  "MA English Literature",
-  "MAJMC",
-  "BBA",
-  "BCA",
-  "B.Com (HONS)",
-  "Others"
-];
+export const COURSES = [];
 
 const currentYear = new Date().getFullYear();
 

@@ -25,7 +25,6 @@ import {
 import { cn } from "@/lib/utils";
 
 export function TableToolbar({
-
   searchQuery,
   onSearchChange,
   filters,
@@ -41,6 +40,28 @@ export function TableToolbar({
 }) {
   const { currentRoleKey } = useLeads();
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [dbOptions, setDbOptions] = useState({
+    colleges: [],
+    courses: [],
+    units: [],
+    counsellors: [],
+  });
+
+  React.useEffect(() => {
+    fetch("/api/crm/options")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setDbOptions({
+            colleges: data.colleges || [],
+            courses: data.courses || [],
+            units: data.units || [],
+            counsellors: data.counsellors || [],
+          });
+        }
+      })
+      .catch((err) => console.error("Error fetching filter options:", err));
+  }, []);
 
   // Count active non-default filters
   const activeFiltersCount = [
@@ -292,7 +313,7 @@ export function TableToolbar({
                 className="w-full h-8 rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-800 truncate focus:outline-none focus:ring-1 focus:ring-[#8B1E1E]"
               >
                 <option value="ALL">All Colleges</option>
-                {COLLEGES.map((c) => (
+                {dbOptions.colleges.map((c) => (
                   <option key={c} value={c}>
                     {c}
                   </option>
@@ -311,7 +332,7 @@ export function TableToolbar({
                 className="w-full h-8 rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-800 truncate focus:outline-none focus:ring-1 focus:ring-[#8B1E1E]"
               >
                 <option value="ALL">All Courses</option>
-                {COURSES.map((c) => (
+                {dbOptions.courses.map((c) => (
                   <option key={c} value={c}>
                     {c}
                   </option>
@@ -330,7 +351,7 @@ export function TableToolbar({
                 className="w-full h-8 rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-800 truncate focus:outline-none focus:ring-1 focus:ring-[#8B1E1E]"
               >
                 <option value="ALL">All Units</option>
-                {CENTERS.map((c) => (
+                {dbOptions.units.map((c) => (
                   <option key={c} value={c}>
                     {c}
                   </option>
@@ -349,11 +370,12 @@ export function TableToolbar({
                 className="w-full h-8 rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-800 truncate focus:outline-none focus:ring-1 focus:ring-[#8B1E1E]"
               >
                 <option value="ALL">All Counsellors</option>
-                {COUNSELLORS.map((c) => (
+                {dbOptions.counsellors.map((c) => (
                   <option key={c} value={c}>
                     {c}
                   </option>
                 ))}
+                <option value="Unassigned">Unassigned</option>
               </select>
             </div>
           </div>

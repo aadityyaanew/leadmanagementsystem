@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useLeads } from "@/hooks/useLeads";
 import {
   ArrowUpDown,
@@ -50,6 +50,19 @@ export function LeadsTable({
   onPageSizeChange,
 }) {
   const { currentRoleKey } = useLeads();
+  const [counsellorOptions, setCounsellorOptions] = useState(COUNSELLORS);
+
+  useEffect(() => {
+    fetch("/api/crm/options")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.counsellors) && data.counsellors.length > 0) {
+          setCounsellorOptions(data.counsellors);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const allPageIds = leads.map((l) => l.id);
   const isAllSelected = allPageIds.length > 0 && allPageIds.every((id) => selectedIds.includes(id));
   const isSomeSelected = allPageIds.some((id) => selectedIds.includes(id)) && !isAllSelected;
@@ -423,7 +436,7 @@ export function LeadsTable({
                             }
                           >
                             <DropdownMenuLabel>Reassign Counsellor</DropdownMenuLabel>
-                            {COUNSELLORS.map((c) => (
+                            {counsellorOptions.map((c) => (
                               <DropdownMenuItem
                                 key={c}
                                 onClick={() => onQuickCounsellorChange(lead.id, c)}

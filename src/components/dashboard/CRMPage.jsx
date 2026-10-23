@@ -427,8 +427,8 @@ export function CRMPage({ embedded = false }) {
     for (const rowData of withCounsellors) {
       const leadData = {
         ...rowData,
-        college: "Other",
-        course:  "Other",
+        college: rowData.college || "",
+        course:  rowData.course || "",
         center:  importUnit === "Own Unit" ? "Assigned Unit" : importUnit,
         source:  "CSV Import",
       };

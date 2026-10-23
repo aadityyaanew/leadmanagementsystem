@@ -14,7 +14,6 @@ import { DropdownMenu, DropdownMenuItem, DropdownMenuLabel } from "@/components/
 import { LEAD_STATUSES, COUNSELLORS } from "@/lib/constants";
 
 export function BulkActionsBar({
-
   selectedIds,
   onClearSelection,
   onBulkStatusChange,
@@ -25,6 +24,19 @@ export function BulkActionsBar({
   canAssign,
 }) {
   const { currentRoleKey } = useLeads();
+  const [counsellorOptions, setCounsellorOptions] = React.useState(COUNSELLORS);
+
+  React.useEffect(() => {
+    fetch("/api/crm/options")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.counsellors) && data.counsellors.length > 0) {
+          setCounsellorOptions(data.counsellors);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   if (!selectedIds || selectedIds.length === 0) return null;
 
   return (
@@ -78,7 +90,7 @@ export function BulkActionsBar({
           }
         >
           <DropdownMenuLabel>Assign {selectedIds.length} leads to</DropdownMenuLabel>
-          {COUNSELLORS.map((c) => (
+          {counsellorOptions.map((c) => (
             <DropdownMenuItem
               key={c}
               onClick={() => onBulkAssignCounsellor(c)}

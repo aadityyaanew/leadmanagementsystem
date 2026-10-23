@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLeads } from "@/hooks/useLeads";
 import {
   Phone,
@@ -43,6 +43,18 @@ export function LeadDetailsSheet({
 }) {
   const { currentRoleKey } = useLeads();
   const [activeTab, setActiveTab] = useState("overview");
+  const [counsellorOptions, setCounsellorOptions] = useState(COUNSELLORS);
+
+  useEffect(() => {
+    fetch("/api/crm/options")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.counsellors) && data.counsellors.length > 0) {
+          setCounsellorOptions(data.counsellors);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // New follow-up form state
   const [showAddFollowUp, setShowAddFollowUp] = useState(false);
@@ -410,7 +422,7 @@ export function LeadDetailsSheet({
                         onChange={(e) => onCounsellorChange(lead.id, e.target.value)}
                         className="mt-1 h-7 rounded border border-slate-300 bg-white px-2 text-xs font-medium text-slate-800"
                       >
-                        {COUNSELLORS.map((c) => (
+                        {counsellorOptions.map((c) => (
                           <option key={c} value={c}>
                             {c}
                           </option>
