@@ -40,25 +40,6 @@ export const ROLE_PERMISSIONS = {
     canViewAdminPanel: true,
     canViewDashboard: true,
   },
-  BusinessManager: {
-    canViewAllLeads: true,
-    canAddLeads: true,
-    canEditLeads: true,
-    canDeleteLeads: false,
-    canBulkManage: true,
-    canExportLeads: true,
-    canImportLeads: true,
-    canAssignCounsellor: true,
-    canApproveAdmission: false,
-    canManageUsers: false,
-    canManageUnits: true,
-    canManageColleges: false,
-    canManageCourses: false,
-    canViewCounsellors: true,
-    canViewUnits: true,
-    canViewAdminPanel: false,
-    canViewDashboard: true,
-  },
   UnitHead: {
     canViewAllLeads: false, // Only their unit's leads
     canAddLeads: true,
@@ -100,7 +81,7 @@ export const ROLE_PERMISSIONS = {
 };
 
 // Role hierarchy (lower index = higher authority)
-export const ROLE_HIERARCHY = ['Admin', 'BusinessManager', 'UnitHead', 'Counsellor'];
+export const ROLE_HIERARCHY = ['Admin', 'UnitHead', 'Counsellor'];
 
 /**
  * Check if a role has a specific permission.
@@ -135,7 +116,6 @@ export function hasMinimumRole(userRole, requiredRole) {
 export function getRoleLabel(role) {
   const labels = {
     Admin: 'Chief Admission Officer',
-    BusinessManager: 'Business Manager',
     UnitHead: 'Unit Head',
     Counsellor: 'Counsellor',
   };
@@ -150,7 +130,6 @@ export function getRoleLabel(role) {
 export function getRoleBadgeClass(role) {
   const classes = {
     Admin: 'bg-rose-50 text-[#8B1E1E] border-rose-200',
-    BusinessManager: 'bg-rose-50 text-rose-700 border-rose-200',
     UnitHead: 'bg-purple-50 text-purple-700 border-purple-200',
     Counsellor: 'bg-blue-50 text-blue-700 border-blue-200',
   };
@@ -165,7 +144,6 @@ export function getRoleBadgeClass(role) {
 export function dbRoleToKey(dbRole) {
   const map = {
     Admin: 'ADMIN',
-    BusinessManager: 'BUSINESS_MANAGER',
     UnitHead: 'UNIT_HEAD',
     Counsellor: 'COUNSELLOR',
   };

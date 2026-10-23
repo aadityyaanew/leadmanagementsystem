@@ -56,7 +56,7 @@ export function proxy(request) {
 
   // ── CRM sub-route access control ────────────────────────────────────────
   if (pathname.startsWith("/crm/units")) {
-    if (role !== "BusinessManager" && role !== "Admin") {
+    if (role !== "Admin") {
       return NextResponse.redirect(new URL("/crm/dashboard", request.url));
     }
   }

@@ -28,8 +28,8 @@ export async function GET(request) {
 
     const { role } = session;
 
-    // Only Admin and BusinessManager can view all units
-    if (role !== "Admin" && role !== "BusinessManager") {
+    // Only Admin can view all units
+    if (role !== "Admin") {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 

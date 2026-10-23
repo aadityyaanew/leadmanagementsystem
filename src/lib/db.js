@@ -47,7 +47,7 @@ export async function initDatabase() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
 
-  // Create users table (business managers, unit heads, counsellors managed by admin)
+  // Create users table (unit heads and counsellors managed by admin)
   await db.query(`
     CREATE TABLE IF NOT EXISTS users (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -55,7 +55,7 @@ export async function initDatabase() {
       email VARCHAR(255),
       employee_id VARCHAR(255),
       password VARCHAR(255) NOT NULL,
-      role ENUM('Admin', 'BusinessManager', 'UnitHead', 'Counsellor') NOT NULL,
+      role ENUM('Admin', 'UnitHead', 'Counsellor') NOT NULL,
       phone VARCHAR(32),
       unit_id INT,
       avatar VARCHAR(8),

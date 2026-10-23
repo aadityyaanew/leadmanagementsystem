@@ -106,13 +106,11 @@ export function StatusBadge({ active }) {
 // ─── RoleBadge ───────────────────────────────────────────────────────────────
 
 const ROLE_STYLES = {
-  BusinessManager: "bg-rose-50 text-rose-700 border-rose-200",
   UnitHead:        "bg-purple-50 text-purple-700 border-purple-200",
   Counsellor:      "bg-blue-50 text-blue-700 border-blue-200",
 };
 
 const ROLE_LABELS = {
-  BusinessManager: "Business Manager",
   UnitHead:        "Unit Head",
   Counsellor:      "Counsellor",
 };

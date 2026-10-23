@@ -67,7 +67,7 @@ export default function AdminUsersPage() {
   return (
     <SectionShell
       title="Users"
-      description="Manage Business Managers, Unit Heads and Counsellors"
+      description="Manage Unit Heads and Counsellors"
       search={search}
       onSearch={setSearch}
       onRefresh={refresh}
@@ -83,7 +83,6 @@ export default function AdminUsersPage() {
           className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#8B1E1E]/30 focus:border-[#8B1E1E] bg-white"
         >
           <option value="ALL">All Roles</option>
-          <option value="BusinessManager">Business Manager</option>
           <option value="UnitHead">Unit Head</option>
           <option value="Counsellor">Counsellor</option>
         </select>
@@ -132,7 +131,6 @@ export default function AdminUsersPage() {
             </div>
             <FormField label="Role" required>
               <AdminSelect value={form.role} onChange={(e) => setForm(p => ({ ...p, role: e.target.value }))}>
-                <option value="BusinessManager">Business Manager</option>
                 <option value="UnitHead">Unit Head</option>
                 <option value="Counsellor">Counsellor</option>
               </AdminSelect>

@@ -401,7 +401,7 @@ export function CRMPage({ embedded = false }) {
   const handleImportCSV = useCallback((file) => {
     setImportFile(file);
     // Initialize default unit selection based on role
-    if (currentRoleKey === "ADMIN" || currentRoleKey === "BUSINESS_MANAGER") {
+    if (currentRoleKey === "ADMIN") {
       setImportUnit(CENTERS[0] || "");
     } else {
       setImportUnit("Own Unit"); // Simplified for Unit Head
@@ -865,7 +865,7 @@ export function CRMPage({ embedded = false }) {
             <p className="text-sm text-slate-600 mb-4">
               File: <span className="font-semibold">{importFile?.name}</span>
             </p>
-            {(currentRoleKey === "ADMIN" || currentRoleKey === "BUSINESS_MANAGER") && (
+            {currentRoleKey === "ADMIN" && (
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700">Select Unit for Distribution</label>
                 <select
@@ -893,7 +893,7 @@ export function CRMPage({ embedded = false }) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setImportFile(null)}>Cancel</Button>
-            <Button onClick={handleConfirmImport} disabled={!importUnit && (currentRoleKey === "ADMIN" || currentRoleKey === "BUSINESS_MANAGER")} className="bg-[#8B1E1E] hover:bg-[#6d1414] text-white">
+            <Button onClick={handleConfirmImport} disabled={!importUnit && currentRoleKey === "ADMIN"} className="bg-[#8B1E1E] hover:bg-[#6d1414] text-white">
               Confirm & Import
             </Button>
           </DialogFooter>

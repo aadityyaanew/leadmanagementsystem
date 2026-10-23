@@ -67,7 +67,7 @@ export default function AdminOverviewPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatsCard icon={Users}        label="Total Users"  value={stats.users}    color="rose"    subtitle="Business Mgr, Unit Heads, Counsellors" />
+        <StatsCard icon={Users}        label="Total Users"  value={stats.users}    color="rose"    subtitle="Unit Heads & Counsellors" />
         <StatsCard icon={Landmark}     label="Colleges"     value={stats.colleges} color="blue"    subtitle="Partner institutions" />
         <StatsCard icon={GraduationCap} label="Courses"     value={stats.courses}  color="purple"  subtitle="Available programs" />
         <StatsCard icon={Building2}    label="Units"        value={stats.units}    color="emerald" subtitle="Sales & admission centers" />
@@ -81,7 +81,7 @@ export default function AdminOverviewPage() {
           <div>
             <h3 className="font-semibold text-slate-900 mb-1">Admin Capabilities</h3>
             <ul className="text-sm text-slate-600 space-y-1 list-disc list-inside">
-              <li>Add, edit and deactivate <strong>Business Managers</strong>, <strong>Unit Heads</strong> and <strong>Counsellors</strong></li>
+              <li>Add, edit and deactivate <strong>Unit Heads</strong> and <strong>Counsellors</strong></li>
               <li>Manage <strong>Colleges</strong> that appear in lead intake forms</li>
               <li>Configure <strong>Courses</strong> offered per college</li>
               <li>Create and assign <strong>Units</strong> (sales/admission centers) with unit heads</li>

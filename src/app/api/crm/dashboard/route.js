@@ -8,7 +8,7 @@ import { SESSION_COOKIE, parseSessionCookie } from "@/lib/auth";
  * Returns lead statistics scoped to the current user's role.
  *
  * Scoping rules:
- *   Admin / BusinessManager → all leads
+ *   Admin → all leads
  *   UnitHead → leads where the assigned counsellor belongs to their unit
  *   Counsellor → only leads assigned to themselves
  */
@@ -36,7 +36,7 @@ export async function GET(request) {
     let whereClause = "";
     let params = [];
 
-    if (role === "Admin" || role === "BusinessManager") {
+    if (role === "Admin") {
       // See all leads
       whereClause = "";
     } else if (role === "UnitHead") {

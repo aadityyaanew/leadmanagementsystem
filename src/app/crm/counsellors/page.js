@@ -357,7 +357,7 @@ export default function CounsellorManagementPage() {
   };
 
   // Determine permission to edit based on session role
-  const canEdit = session?.role === "Admin" || session?.role === "BusinessManager" || session?.role === "UnitHead";
+  const canEdit = session?.role === "Admin" || session?.role === "UnitHead";
 
   // Filter counsellors based on session role (unit head sees only their unit)
   const scopedCounsellors = (() => {
@@ -411,7 +411,7 @@ export default function CounsellorManagementPage() {
             className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#8B1E1E]/30 focus:border-[#8B1E1E] transition-all"
           />
         </div>
-        {(session?.role === "Admin" || session?.role === "BusinessManager") && (
+        {session?.role === "Admin" && (
           <select
             value={unitFilter}
             onChange={(e) => setUnitFilter(e.target.value)}

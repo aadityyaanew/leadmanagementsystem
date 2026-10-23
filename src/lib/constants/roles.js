@@ -1,6 +1,5 @@
 export const ROLES = {
   ADMIN: 'admin',
-  BUSINESS_MANAGER: 'business_manager',
   UNIT_HEAD: 'unit_head',
   COUNSELLOR: 'counsellor',
 };
@@ -9,7 +8,6 @@ export const ROLES = {
 // Lower index = higher access level
 export const ROLE_HIERARCHY = [
   ROLES.ADMIN,
-  ROLES.BUSINESS_MANAGER,
   ROLES.UNIT_HEAD,
   ROLES.COUNSELLOR,
 ];

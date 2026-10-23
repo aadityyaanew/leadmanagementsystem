@@ -652,7 +652,7 @@ export function LeadDetailsSheet({
                 Internal Counsellor Notes
               </h3>
               <p className="text-xs text-slate-500">
-                Private notes visible to counsellors, managers, and admissions directors
+                Private notes visible to counsellors, unit heads, and admin
               </p>
             </div>
 

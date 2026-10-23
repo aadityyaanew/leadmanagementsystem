@@ -58,7 +58,6 @@ export async function POST(request) {
     let roleKey = "";
     switch (user.role) {
       case "Admin": roleKey = "ADMIN"; break;
-      case "BusinessManager": roleKey = "BUSINESS_MANAGER"; break;
       case "UnitHead": roleKey = "UNIT_HEAD"; break;
       case "Counsellor": roleKey = "COUNSELLOR"; break;
       default: roleKey = "COUNSELLOR";

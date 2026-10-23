@@ -157,22 +157,6 @@ export const USER_ROLES = {
       viewAllLeads: true,
     },
   },
-  BUSINESS_MANAGER: {
-    id: "BusinessManager",
-    label: "Business Manager",
-    title: "Business Manager",
-    name: "Insides Sales",
-    employeeId: "EMPBM001",
-    password: "password123",
-    avatar: "NK",
-    permissions: {
-      canDeleteLeads: false,
-      canBulkManage: true,
-      canAssignCounsellor: true,
-      canExport: true,
-      viewAllLeads: true,
-    },
-  },
   UNIT_HEAD: {
     id: "UnitHead",
     label: "Unit Head (College)",

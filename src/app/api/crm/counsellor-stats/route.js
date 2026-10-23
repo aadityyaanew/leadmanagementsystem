@@ -31,7 +31,7 @@ export async function GET(request) {
     let whereClause = "";
     let params = [];
 
-    if (role === "Admin" || role === "BusinessManager") {
+    if (role === "Admin") {
       whereClause = "";
     } else if (role === "UnitHead") {
       if (unit_id) {
