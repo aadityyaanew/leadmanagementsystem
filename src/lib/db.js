@@ -1,6 +1,8 @@
 import mysql from "mysql2/promise";
 
 let pool;
+let isInitialized = false;
+let initPromise = null;
 
 export function getDbPool() {
   if (!pool) {
@@ -12,15 +14,28 @@ export function getDbPool() {
       database: process.env.DB_NAME || "u725346955_lms",
       waitForConnections: true,
       connectionLimit: 10,
+      maxIdle: 10,
+      idleTimeout: 60000,
       queueLimit: 0,
-      connectTimeout: 10000,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 10000,
+      connectTimeout: 20000,
     });
   }
   return pool;
 }
 
 export async function initDatabase() {
-  const db = getDbPool();
+  if (isInitialized) {
+    return getDbPool();
+  }
+  if (initPromise) {
+    return initPromise;
+  }
+
+  initPromise = (async () => {
+    const db = getDbPool();
+    try {
 
   // Create leads table
   await db.query(`
@@ -125,5 +140,15 @@ export async function initDatabase() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
 
-  return db;
+      isInitialized = true;
+      return db;
+    } catch (err) {
+      console.warn("initDatabase warning:", err.message);
+      initPromise = null;
+      return db;
+    }
+  })();
+
+  return initPromise;
 }
+

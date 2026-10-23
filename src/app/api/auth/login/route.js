@@ -4,30 +4,30 @@ import { SESSION_COOKIE, serializeSessionCookie } from "@/lib/auth";
 
 export async function POST(request) {
   try {
-    await initDatabase();
+    // Non-blocking database initialization to prevent remote ECONNRESET
+    await initDatabase().catch((err) => console.warn("Init DB warning during login:", err.message));
     const db = getDbPool();
     const body = await request.json();
     const { identifier, password, isAdmin } = body;
 
-    if (!identifier || !password) {
+    const cleanIdentifier = String(identifier || "").trim();
+    const cleanPassword = String(password || "").trim();
+
+    if (!cleanIdentifier || !cleanPassword) {
       return NextResponse.json(
         { success: false, error: "Identifier and password are required" },
         { status: 400 }
       );
     }
 
-    let query = "";
-    let params = [];
-
-    if (isAdmin) {
-      // Admin logs in with email
-      query = "SELECT * FROM users WHERE email = ? AND password = ? AND is_active = 1";
-      params = [identifier, password];
-    } else {
-      // Employees log in with employee_id
-      query = "SELECT * FROM users WHERE employee_id = ? AND password = ? AND is_active = 1";
-      params = [identifier, password];
-    }
+    // Flexible identifier lookup (supports email OR employee_id, case-insensitive)
+    const query = `
+      SELECT * FROM users 
+      WHERE (LOWER(employee_id) = LOWER(?) OR LOWER(email) = LOWER(?)) 
+        AND password = ? 
+        AND is_active = 1
+    `;
+    const params = [cleanIdentifier, cleanIdentifier, cleanPassword];
 
     const [rows] = await db.query(query, params);
 
