@@ -33,6 +33,13 @@ export async function POST(request) {
       );
     }
 
+    if ((role === "Counsellor" || role === "UnitHead") && !unit_id) {
+      return NextResponse.json(
+        { success: false, error: `Unit assignment is required for ${role === "UnitHead" ? "Unit Head" : "Counsellor"}` },
+        { status: 400 }
+      );
+    }
+
     // Generate avatar from initials
     const parts = name.trim().split(" ");
     const avatar = parts.length >= 2
@@ -67,6 +74,13 @@ export async function PUT(request) {
 
     if (!id) {
       return NextResponse.json({ success: false, error: "id is required" }, { status: 400 });
+    }
+
+    if (unit_id !== undefined && !unit_id && (role === "Counsellor" || role === "UnitHead")) {
+      return NextResponse.json(
+        { success: false, error: `Unit assignment is required for ${role === "UnitHead" ? "Unit Head" : "Counsellor"}` },
+        { status: 400 }
+      );
     }
 
     const updates = [];

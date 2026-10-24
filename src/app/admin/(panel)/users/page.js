@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Eye, EyeOff, Users } from "lucide-react";
 import { useCrud } from "@/features/admin/hooks/useCrud";
 import {
@@ -28,9 +28,9 @@ export default function AdminUsersPage() {
     form, setForm, openAdd, openEdit, save, remove, refresh, toggleActive,
   } = useCrud({ endpoint: "/api/admin/users", emptyForm: EMPTY_FORM, itemKey: "users" });
 
-  // Also fetch units for the unit selector in the form
+  // Fetch units for the unit selector in the form
   const [units, setUnits] = useState([]);
-  useState(() => {
+  useEffect(() => {
     fetch("/api/admin/units").then(r => r.json()).then(d => {
       if (d.success) setUnits(d.units);
     }).catch(() => {});
@@ -40,6 +40,8 @@ export default function AdminUsersPage() {
     const result = await save((f, isEdit) => {
       if (!f.name || (!f.email && !f.employee_id) || (!isEdit && !f.password) || !f.role)
         return "Please fill in all required fields (including Email or Employee ID)";
+      if ((f.role === "Counsellor" || f.role === "UnitHead") && !f.unit_id)
+        return `Please assign a unit for ${f.role === "UnitHead" ? "Unit Head" : "Counsellor"}`;
     });
     if (result?.error) addToast({ title: "Error", description: result.error, type: "error" });
     else if (result?.success) addToast({ title: "Success", description: editItem ? "User updated" : "User added", type: "success" });
@@ -135,9 +137,9 @@ export default function AdminUsersPage() {
                 <option value="Counsellor">Counsellor</option>
               </AdminSelect>
             </FormField>
-            <FormField label="Assign to Unit">
+            <FormField label="Assign to Unit" required>
               <AdminSelect value={form.unit_id} onChange={(e) => setForm(p => ({ ...p, unit_id: e.target.value }))}>
-                <option value="">No unit</option>
+                <option value="">Select a unit</option>
                 {units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
               </AdminSelect>
             </FormField>

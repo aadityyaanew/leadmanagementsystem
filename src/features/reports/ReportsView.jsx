@@ -93,9 +93,9 @@ export function ReportsView({ forcedRole = null }) {
   const [data, setData] = useState({
     role: "Admin",
     currentUser: {},
-    todaySummary: { total_today: 0, phone_today: 0, email_today: 0, connected_today: 0, unanswered_today: 0, duration_today: 0, active_counsellors: 0 },
-    weekSummary: { total_week: 0, connected_week: 0, unanswered_week: 0, duration_week: 0 },
-    monthSummary: { total_month: 0, connected_month: 0, unanswered_month: 0, duration_month: 0 },
+    todaySummary: { total_today: 0, unique_today: 0, phone_today: 0, email_today: 0, connected_today: 0, unanswered_today: 0, duration_today: 0, active_counsellors: 0 },
+    weekSummary: { total_week: 0, unique_week: 0, connected_week: 0, unanswered_week: 0, duration_week: 0 },
+    monthSummary: { total_month: 0, unique_month: 0, connected_month: 0, unanswered_month: 0, duration_month: 0 },
     counsellorDailyStats: [],
     dateWiseStats: [],
     logs: [],
@@ -162,6 +162,7 @@ export function ReportsView({ forcedRole = null }) {
 
   useEffect(() => {
     if (authLoaded) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchReports();
     }
   }, [authLoaded, fetchReports]);
@@ -314,7 +315,7 @@ export function ReportsView({ forcedRole = null }) {
                 {isCounsellor ? "My Calls Today" : isUnitHead ? "Team Calls Today" : "Total Calls Today"}
               </p>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                {data.todaySummary.phone_today} phone calls logged
+                <span className="font-semibold text-slate-700">{data.todaySummary.unique_today || 0}</span> unique numbers reached
               </p>
             </div>
           </div>
@@ -337,7 +338,9 @@ export function ReportsView({ forcedRole = null }) {
                 {data.weekSummary.total_week}
               </p>
               <p className="text-xs font-semibold text-slate-600">This Week Outreach</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">Last 7 days total</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                <span className="font-semibold text-slate-700">{data.weekSummary.unique_week || 0}</span> unique numbers (7d)
+              </p>
             </div>
           </div>
           <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
@@ -359,7 +362,9 @@ export function ReportsView({ forcedRole = null }) {
                 {data.monthSummary.total_month}
               </p>
               <p className="text-xs font-semibold text-slate-600">This Month Total</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">Last 30 days activity</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                <span className="font-semibold text-slate-700">{data.monthSummary.unique_month || 0}</span> unique numbers (30d)
+              </p>
             </div>
           </div>
           <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
@@ -579,8 +584,10 @@ export function ReportsView({ forcedRole = null }) {
                       <tr>
                         <th className="px-4 py-3 text-left">Counsellor Name</th>
                         <th className="px-4 py-3 text-center">Calls Today</th>
+                        <th className="px-4 py-3 text-center">Unique Numbers (Today)</th>
                         <th className="px-4 py-3 text-center">Last 7 Days</th>
                         <th className="px-4 py-3 text-center">Last 30 Days</th>
+                        <th className="px-4 py-3 text-center">Total Unique Calls</th>
                         <th className="px-4 py-3 text-center">Connected</th>
                         <th className="px-4 py-3 text-center">Missed / Busy</th>
                         <th className="px-4 py-3 text-center">Success Rate</th>
@@ -618,11 +625,23 @@ export function ReportsView({ forcedRole = null }) {
                                 {c.today_calls}
                               </span>
                             </td>
-                            <td className="px-4 py-3 text-center text-slate-700 font-medium">
-                              {c.week_calls}
+                            <td className="px-4 py-3 text-center">
+                              <span className="inline-block px-2.5 py-0.5 font-bold rounded-full bg-blue-50 text-blue-700 text-xs">
+                                {c.today_unique_calls || 0}
+                              </span>
                             </td>
                             <td className="px-4 py-3 text-center text-slate-700 font-medium">
-                              {c.month_calls}
+                              <div>{c.week_calls}</div>
+                              <div className="text-[10px] text-slate-400">({c.week_unique_calls || 0} unique)</div>
+                            </td>
+                            <td className="px-4 py-3 text-center text-slate-700 font-medium">
+                              <div>{c.month_calls}</div>
+                              <div className="text-[10px] text-slate-400">({c.month_unique_calls || 0} unique)</div>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold bg-purple-50 text-purple-700 border border-purple-200 text-xs">
+                                {c.unique_calls || 0}
+                              </span>
                             </td>
                             <td className="px-4 py-3 text-center">
                               <span className="text-emerald-700 font-semibold">{c.connected_calls}</span>
@@ -805,6 +824,7 @@ export function ReportsView({ forcedRole = null }) {
                   <tr>
                     <th className="px-4 py-3 text-left">Date</th>
                     <th className="px-4 py-3 text-center">Total Calls</th>
+                    <th className="px-4 py-3 text-center">Unique Numbers</th>
                     <th className="px-4 py-3 text-center">Phone Calls</th>
                     <th className="px-4 py-3 text-center">Connected Calls</th>
                     <th className="px-4 py-3 text-center">Unanswered / Missed</th>
@@ -823,6 +843,11 @@ export function ReportsView({ forcedRole = null }) {
                         <td className="px-4 py-3 text-center">
                           <span className="inline-block px-2.5 py-0.5 font-bold rounded-full bg-rose-50 text-[#8B1E1E] text-xs">
                             {d.total_calls}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span className="inline-block px-2.5 py-0.5 font-bold rounded-full bg-purple-50 text-purple-700 text-xs">
+                            {d.unique_calls || 0}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-center text-slate-700 font-medium">

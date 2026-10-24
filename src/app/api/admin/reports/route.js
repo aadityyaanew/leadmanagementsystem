@@ -281,6 +281,7 @@ export async function GET(request) {
     const [todayTotals] = await db.query(
       `SELECT 
          COUNT(*) AS total_today,
+         COUNT(DISTINCT NULLIF(TRIM(cl.lead_phone), '')) AS unique_today,
          SUM(CASE WHEN cl.call_type = 'Phone Call' THEN 1 ELSE 0 END) AS phone_today,
          SUM(CASE WHEN cl.call_type = 'Email Follow-up' THEN 1 ELSE 0 END) AS email_today,
          SUM(CASE WHEN ${CONNECTED_SQL} THEN 1 ELSE 0 END) AS connected_today,
@@ -296,6 +297,7 @@ export async function GET(request) {
     const [weekTotals] = await db.query(
       `SELECT 
          COUNT(*) AS total_week,
+         COUNT(DISTINCT NULLIF(TRIM(cl.lead_phone), '')) AS unique_week,
          SUM(CASE WHEN ${CONNECTED_SQL} THEN 1 ELSE 0 END) AS connected_week,
          SUM(CASE WHEN ${UNANSWERED_SQL} THEN 1 ELSE 0 END) AS unanswered_week,
          SUM(COALESCE(cl.duration, 0)) AS duration_week
@@ -309,6 +311,7 @@ export async function GET(request) {
     const [monthTotals] = await db.query(
       `SELECT 
          COUNT(*) AS total_month,
+         COUNT(DISTINCT NULLIF(TRIM(cl.lead_phone), '')) AS unique_month,
          SUM(CASE WHEN ${CONNECTED_SQL} THEN 1 ELSE 0 END) AS connected_month,
          SUM(CASE WHEN ${UNANSWERED_SQL} THEN 1 ELSE 0 END) AS unanswered_month,
          SUM(COALESCE(cl.duration, 0)) AS duration_month
@@ -340,6 +343,7 @@ export async function GET(request) {
       `SELECT 
          DATE_FORMAT(CONVERT_TZ(cl.created_at, '+00:00', '+05:30'), '%Y-%m-%d') AS call_date,
          COUNT(*) AS total_calls,
+         COUNT(DISTINCT NULLIF(TRIM(cl.lead_phone), '')) AS unique_calls,
          SUM(CASE WHEN cl.call_type = 'Phone Call' THEN 1 ELSE 0 END) AS phone_calls,
          SUM(CASE WHEN cl.call_type = 'Email Follow-up' THEN 1 ELSE 0 END) AS email_calls,
          SUM(CASE WHEN ${CONNECTED_SQL} THEN 1 ELSE 0 END) AS connected_calls,
@@ -360,6 +364,10 @@ export async function GET(request) {
         `SELECT 
            u.name AS counsellor_name,
            COUNT(cl.id) AS total_calls,
+           COUNT(DISTINCT NULLIF(TRIM(cl.lead_phone), '')) AS unique_calls,
+           COUNT(DISTINCT CASE WHEN cl.id IS NOT NULL AND DATE(CONVERT_TZ(cl.created_at, '+00:00', '+05:30')) = DATE(CONVERT_TZ(NOW(), '+00:00', '+05:30')) THEN NULLIF(TRIM(cl.lead_phone), '') END) AS today_unique_calls,
+           COUNT(DISTINCT CASE WHEN cl.id IS NOT NULL AND DATE(CONVERT_TZ(cl.created_at, '+00:00', '+05:30')) >= DATE_SUB(DATE(CONVERT_TZ(NOW(), '+00:00', '+05:30')), INTERVAL 6 DAY) THEN NULLIF(TRIM(cl.lead_phone), '') END) AS week_unique_calls,
+           COUNT(DISTINCT CASE WHEN cl.id IS NOT NULL AND DATE(CONVERT_TZ(cl.created_at, '+00:00', '+05:30')) >= DATE_SUB(DATE(CONVERT_TZ(NOW(), '+00:00', '+05:30')), INTERVAL 29 DAY) THEN NULLIF(TRIM(cl.lead_phone), '') END) AS month_unique_calls,
            SUM(CASE WHEN cl.id IS NOT NULL AND DATE(CONVERT_TZ(cl.created_at, '+00:00', '+05:30')) = DATE(CONVERT_TZ(NOW(), '+00:00', '+05:30')) THEN 1 ELSE 0 END) AS today_calls,
            SUM(CASE WHEN cl.id IS NOT NULL AND DATE(CONVERT_TZ(cl.created_at, '+00:00', '+05:30')) >= DATE_SUB(DATE(CONVERT_TZ(NOW(), '+00:00', '+05:30')), INTERVAL 6 DAY) THEN 1 ELSE 0 END) AS week_calls,
            SUM(CASE WHEN cl.id IS NOT NULL AND DATE(CONVERT_TZ(cl.created_at, '+00:00', '+05:30')) >= DATE_SUB(DATE(CONVERT_TZ(NOW(), '+00:00', '+05:30')), INTERVAL 29 DAY) THEN 1 ELSE 0 END) AS month_calls,
@@ -391,6 +399,7 @@ export async function GET(request) {
       },
       todaySummary: {
         total_today: Number(todayTotals[0]?.total_today) || 0,
+        unique_today: Number(todayTotals[0]?.unique_today) || 0,
         phone_today: Number(todayTotals[0]?.phone_today) || 0,
         email_today: Number(todayTotals[0]?.email_today) || 0,
         connected_today: Number(todayTotals[0]?.connected_today) || 0,
@@ -400,12 +409,14 @@ export async function GET(request) {
       },
       weekSummary: {
         total_week: Number(weekTotals[0]?.total_week) || 0,
+        unique_week: Number(weekTotals[0]?.unique_week) || 0,
         connected_week: Number(weekTotals[0]?.connected_week) || 0,
         unanswered_week: Number(weekTotals[0]?.unanswered_week) || 0,
         duration_week: Number(weekTotals[0]?.duration_week) || 0,
       },
       monthSummary: {
         total_month: Number(monthTotals[0]?.total_month) || 0,
+        unique_month: Number(monthTotals[0]?.unique_month) || 0,
         connected_month: Number(monthTotals[0]?.connected_month) || 0,
         unanswered_month: Number(monthTotals[0]?.unanswered_month) || 0,
         duration_month: Number(monthTotals[0]?.duration_month) || 0,
@@ -413,9 +424,13 @@ export async function GET(request) {
       counsellorDailyStats: counsellorStatsRows.map((c) => ({
         counsellor_name: c.counsellor_name,
         total_calls: Number(c.total_calls) || 0,
+        unique_calls: Number(c.unique_calls) || 0,
         today_calls: Number(c.today_calls) || 0,
+        today_unique_calls: Number(c.today_unique_calls) || 0,
         week_calls: Number(c.week_calls) || 0,
+        week_unique_calls: Number(c.week_unique_calls) || 0,
         month_calls: Number(c.month_calls) || 0,
+        month_unique_calls: Number(c.month_unique_calls) || 0,
         connected_calls: Number(c.connected_calls) || 0,
         missed_busy: Number(c.unanswered_calls) || 0,
         total_duration: Number(c.total_duration) || 0,
@@ -424,6 +439,7 @@ export async function GET(request) {
       dateWiseStats: dateWiseRows.map((r) => ({
         call_date: r.call_date,
         total_calls: Number(r.total_calls) || 0,
+        unique_calls: Number(r.unique_calls) || 0,
         phone_calls: Number(r.phone_calls) || 0,
         email_calls: Number(r.email_calls) || 0,
         connected_calls: Number(r.connected_calls) || 0,
