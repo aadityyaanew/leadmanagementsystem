@@ -25,13 +25,21 @@ export async function GET(request) {
       const cookieStore = await cookies();
       sessionCookieValue = cookieStore.get(SESSION_COOKIE)?.value;
     }
-    const session = parseSessionCookie(sessionCookieValue);
+    let session = parseSessionCookie(sessionCookieValue);
+    if (!session) {
+      const customHeader = request.headers.get("x-user-session");
+      if (customHeader) {
+        try {
+          session = JSON.parse(decodeURIComponent(customHeader));
+        } catch {}
+      }
+    }
 
     if (!session) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const { role, id: userId, unit_id, name: userName } = session;
+    const { role, id: userId, unit_id: sessionUnitId, name: userName } = session;
 
     let whereClause = "";
     let params = [];
@@ -40,33 +48,44 @@ export async function GET(request) {
       // See all leads
       whereClause = "";
     } else if (role === "UnitHead") {
-      // See leads for counsellors in their unit
-      // Unit head's unit_id → get counsellors with that unit_id → filter leads
-      if (unit_id) {
-        // Get names of counsellors under this unit
+      const [unitRows] = await db.query(
+        "SELECT id, name FROM units WHERE head_user_id = ? OR id = ?",
+        [userId, sessionUnitId || 0]
+      );
+      const unitIds = unitRows.map((u) => u.id);
+      const unitNames = unitRows.map((u) => u.name);
+
+      let counsellorNames = [];
+      if (unitIds.length > 0) {
         const [counsellorRows] = await db.query(
-          "SELECT name FROM users WHERE unit_id = ? AND role = 'Counsellor' AND is_active = 1",
-          [unit_id]
+          `SELECT name FROM users WHERE unit_id IN (${unitIds.map(() => "?").join(", ")}) AND role = 'Counsellor'`,
+          unitIds
         );
-        if (counsellorRows.length > 0) {
-          const names = counsellorRows.map((r) => r.name);
-          const placeholders = names.map(() => "?").join(", ");
-          whereClause = `WHERE counsellor IN (${placeholders})`;
-          params = names;
-        } else {
-          // No counsellors in unit → empty stats
-          return NextResponse.json({
-            success: true,
-            stats: emptyStats(),
-          });
-        }
+        counsellorNames = counsellorRows.map((r) => r.name);
+      }
+
+      const orConditions = [];
+      if (counsellorNames.length > 0) {
+        const ph = counsellorNames.map(() => "?").join(", ");
+        orConditions.push(`counsellor IN (${ph})`);
+        params.push(...counsellorNames);
+      }
+      if (unitIds.length > 0) {
+        const idPh = unitIds.map(() => "?").join(", ");
+        const namePh = unitNames.map(() => "?").join(", ");
+        orConditions.push(
+          `((unit_id IN (${idPh}) OR center IN (${namePh})) AND (counsellor IS NULL OR counsellor = '' OR counsellor = 'Unassigned'))`
+        );
+        params.push(...unitIds, ...unitNames);
+      }
+
+      if (orConditions.length > 0) {
+        whereClause = `WHERE (${orConditions.join(" OR ")})`;
       } else {
-        // Unit head with no unit assigned → show only their name assigned leads
-        whereClause = "WHERE counsellor = ?";
-        params = [userName];
+        return NextResponse.json({ success: true, stats: emptyStats() });
       }
     } else if (role === "Counsellor") {
-      // Only their own leads
+      // Only their own assigned leads
       whereClause = "WHERE counsellor = ?";
       params = [userName];
     }

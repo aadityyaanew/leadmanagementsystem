@@ -114,6 +114,8 @@ export async function initDatabase() {
       name VARCHAR(255) NOT NULL,
       location VARCHAR(255),
       head_user_id INT,
+      round_robin_enabled TINYINT(1) DEFAULT 1,
+      last_assigned_counsellor_id INT DEFAULT NULL,
       is_active TINYINT(1) DEFAULT 1,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -129,6 +131,8 @@ export async function initDatabase() {
       lead_phone VARCHAR(32),
       counsellor_name VARCHAR(255) NOT NULL,
       counsellor_id INT,
+      unit_id INT DEFAULT NULL,
+      unit_name VARCHAR(255) DEFAULT NULL,
       call_type VARCHAR(64) DEFAULT 'Phone Call',
       disposition VARCHAR(128),
       notes TEXT,
@@ -136,9 +140,29 @@ export async function initDatabase() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       INDEX idx_call_created (created_at),
       INDEX idx_call_counsellor (counsellor_name),
-      INDEX idx_call_lead (lead_id)
+      INDEX idx_call_lead (lead_id),
+      INDEX idx_call_unit (unit_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
+
+  // Safe schema migrations for existing tables
+  const safeAddColumn = async (table, colDef) => {
+    try {
+      await db.query(`ALTER TABLE ${table} ADD COLUMN ${colDef}`);
+    } catch (e) {
+      // Ignore if duplicate column error (ER_DUP_FIELDNAME / 1060)
+      if (e.errno !== 1060 && !e.message?.includes("Duplicate column")) {
+        console.warn(`Migration notice for ${table}.${colDef}:`, e.message);
+      }
+    }
+  };
+
+  await safeAddColumn("units", "round_robin_enabled TINYINT(1) DEFAULT 1");
+  await safeAddColumn("units", "last_assigned_counsellor_id INT DEFAULT NULL");
+  await safeAddColumn("leads", "unit_id INT DEFAULT NULL");
+  await safeAddColumn("leads", "counsellor_id INT DEFAULT NULL");
+  await safeAddColumn("call_logs", "unit_id INT DEFAULT NULL");
+  await safeAddColumn("call_logs", "unit_name VARCHAR(255) DEFAULT NULL");
 
       isInitialized = true;
       return db;

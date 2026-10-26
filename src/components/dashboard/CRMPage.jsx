@@ -53,6 +53,8 @@ export function CRMPage({ embedded = false }) {
     bulkAssignCounsellor,
     bulkDeleteLeads,
     resetToSampleData,
+    uploadBulkLeads,
+    distributeUnassigned,
     metrics,
   } = useLeads();
 
@@ -131,9 +133,43 @@ export function CRMPage({ embedded = false }) {
     isBulk: false,
   });
 
-  // CSV Import Config Modal
+  // Units and Distribution States
+  const [availableUnits, setAvailableUnits] = useState([]);
   const [importFile, setImportFile] = useState(null);
   const [importUnit, setImportUnit] = useState("");
+  const [importMode, setImportMode] = useState("distribute"); // "distribute" | "upload_only"
+  const [isImporting, setIsImporting] = useState(false);
+  const [distributionSummary, setDistributionSummary] = useState(null);
+  const [isDistributeModalOpen, setIsDistributeModalOpen] = useState(false);
+  const [isDistributing, setIsDistributing] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetch("/api/admin/units")
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted && data.success && Array.isArray(data.units)) {
+          setAvailableUnits(data.units);
+        }
+      })
+      .catch(() => {});
+    return () => { isMounted = false; };
+  }, []);
+
+  // Count unassigned leads within current role's visible scope
+  const unassignedCount = useMemo(() => {
+    return visibleLeads.filter(
+      (l) => !l.counsellor || l.counsellor === "" || l.counsellor === "Unassigned"
+    ).length;
+  }, [visibleLeads]);
+
+  // Selected unit object for configuration display
+  const selectedUnitObj = useMemo(() => {
+    if (!importUnit) return availableUnits[0] || null;
+    return availableUnits.find(
+      (u) => String(u.id) === String(importUnit) || u.name.toLowerCase() === String(importUnit).toLowerCase()
+    ) || availableUnits[0] || null;
+  }, [importUnit, availableUnits]);
 
   // Handle Preset card clicks
   const handleSelectPresetFilter = useCallback((presetId) => {
@@ -400,50 +436,89 @@ export function CRMPage({ embedded = false }) {
 
   const handleImportCSV = useCallback((file) => {
     setImportFile(file);
-    // Initialize default unit selection based on role
+    setImportMode("distribute");
     if (currentRoleKey === "ADMIN") {
-      setImportUnit(CENTERS[0] || "");
+      setImportUnit(availableUnits[0]?.id || "");
+    } else if (session?.unit_id) {
+      setImportUnit(session.unit_id);
     } else {
-      setImportUnit("Own Unit"); // Simplified for Unit Head
+      setImportUnit(availableUnits[0]?.id || "");
     }
-  }, [currentRoleKey]);
+  }, [currentRoleKey, availableUnits, session]);
 
   const handleConfirmImport = useCallback(async () => {
     if (!importFile) return;
 
-    const { rows, error } = await parseLeadsCSV(importFile);
-    if (error) {
-      addToast({ title: "Import Error", description: error, type: "error" });
+    setIsImporting(true);
+    try {
+      const { rows, error } = await parseLeadsCSV(importFile);
+      if (error) {
+        addToast({ title: "Import Error", description: error, type: "error" });
+        setIsImporting(false);
+        return;
+      }
+
+      const targetUnitId = importUnit || session?.unit_id || availableUnits[0]?.id;
+      if (!targetUnitId) {
+        addToast({ title: "Unit Required", description: "Please select a target unit for import.", type: "error" });
+        setIsImporting(false);
+        return;
+      }
+
+      const summary = await uploadBulkLeads(rows, {
+        unitIdentifier: targetUnitId,
+        mode: importMode,
+      });
+
+      setDistributionSummary(summary);
       setImportFile(null);
-      return;
+      addToast({
+        title: importMode === "distribute" ? "Upload & Distribution Complete" : "Upload Complete",
+        description: `Processed ${summary.totalUploaded} leads. ${summary.totalAssigned} assigned, ${summary.totalUnassigned} unassigned.`,
+        type: "success",
+      });
+    } catch (err) {
+      addToast({ title: "Import Failed", description: err.message || "Failed to process import", type: "error" });
+    } finally {
+      setIsImporting(false);
     }
+  }, [importFile, importUnit, importMode, session, availableUnits, uploadBulkLeads, addToast]);
 
-    // Round-robin assignment using shared utility
-    const withCounsellors = assignRoundRobin(rows, COUNSELLORS);
+  const handleDistributeUnassignedLeads = useCallback(async () => {
+    setIsDistributing(true);
+    try {
+      const targetUnitId = session?.unit_id || importUnit || availableUnits[0]?.id;
+      if (!targetUnitId) {
+        addToast({ title: "Unit Required", description: "No unit found to distribute leads.", type: "error" });
+        setIsDistributing(false);
+        return;
+      }
 
-    let addedCount = 0;
-    let duplicateCount = 0;
+      const summary = await distributeUnassigned({
+        unitId: targetUnitId,
+      });
 
-    for (const rowData of withCounsellors) {
-      const leadData = {
-        ...rowData,
-        college: rowData.college || "",
-        course:  rowData.course || "",
-        center:  importUnit === "Own Unit" ? "Assigned Unit" : importUnit,
-        source:  "CSV Import",
-      };
-      const result = await addLead(leadData);
-      if (result?.duplicateInfo?.isDuplicate) duplicateCount++;
-      else addedCount++;
+      setDistributionSummary({
+        ...summary,
+        mode: "distribute",
+        totalUploaded: summary.totalProcessed,
+        totalPrimary: summary.totalProcessed,
+        totalAssigned: summary.totalAssigned,
+        totalUnassigned: 0,
+        totalDuplicates: 0,
+      });
+      setIsDistributeModalOpen(false);
+      addToast({
+        title: "Distribution Complete",
+        description: `Distributed ${summary.totalAssigned} unassigned leads sequentially via Round Robin.`,
+        type: "success",
+      });
+    } catch (err) {
+      addToast({ title: "Distribution Failed", description: err.message || "Failed to distribute leads", type: "error" });
+    } finally {
+      setIsDistributing(false);
     }
-
-    addToast({
-      title: "CSV Import Complete",
-      description: `Imported ${addedCount} new leads. Found ${duplicateCount} duplicates. Distributed via Round Robin.`,
-      type: "success",
-    });
-    setImportFile(null);
-  }, [importFile, importUnit, addLead, addToast]);
+  }, [session, importUnit, availableUnits, distributeUnassigned, addToast]);
 
 
   // Filtered & Sorted Leads
@@ -592,7 +667,7 @@ export function CRMPage({ embedded = false }) {
             <button onClick={() => setPresetFilter("FEES_PAID")} className={`px-3 py-1.5 rounded-lg border transition-all ${presetFilter === "FEES_PAID" ? "bg-teal-700 text-white border-teal-700 font-semibold" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}>Fees ({metrics.feesPaid})</button>
             <button onClick={() => setPresetFilter("ADMISSION_APPROVED")} className={`px-3 py-1.5 rounded-lg border transition-all flex items-center gap-1 ${presetFilter === "ADMISSION_APPROVED" || presetFilter === "ADMITTED" ? "bg-emerald-700 text-white border-emerald-700 font-semibold" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}><CheckCircle2 className="h-3 w-3" />Admitted ({metrics.admissionApproved})</button>
           </div>
-          <TableToolbar searchQuery={searchQuery} onSearchChange={(val) => { setSearchQuery(val); setCurrentPage(1); }} filters={filters} onFilterChange={handleFilterChange} onResetFilters={handleResetFilters} columnsVisibility={columnsVisibility} onToggleColumn={handleToggleColumn} density={density} onDensityChange={setDensity} onExportCSV={() => handleExportCSV(false)} onImportCSV={handleImportCSV} totalResultsCount={processedLeads.length} />
+          <TableToolbar searchQuery={searchQuery} onSearchChange={(val) => { setSearchQuery(val); setCurrentPage(1); }} filters={filters} onFilterChange={handleFilterChange} onResetFilters={handleResetFilters} columnsVisibility={columnsVisibility} onToggleColumn={handleToggleColumn} density={density} onDensityChange={setDensity} onExportCSV={() => handleExportCSV(false)} onImportCSV={handleImportCSV} onDistributeUnassigned={() => setIsDistributeModalOpen(true)} unassignedCount={unassignedCount} totalResultsCount={processedLeads.length} />
           <LeadsTable leads={processedLeads} columnsVisibility={columnsVisibility} density={density} sortConfig={sortConfig} onSort={handleSort} selectedIds={selectedIds} onToggleSelectRow={handleToggleSelectRow} onToggleSelectAll={handleToggleSelectAll} onViewLead={(lead) => setViewingLead(lead)} onEditLead={(lead) => { setEditingLead(lead); setIsAddModalOpen(true); }} onDeleteLead={(lead) => setDeleteConfirmData({ open: true, lead, isBulk: false })} onQuickStatusChange={handleQuickStatusChange} onQuickCounsellorChange={handleQuickCounsellorChange} onQuickContact={handleQuickContact} canDelete={currentRole.permissions.canDeleteLeads} canAssignCounsellor={currentRole.permissions.canAssignCounsellor} currentPage={currentPage} pageSize={pageSize} onPageChange={setCurrentPage} onPageSizeChange={(newSize) => { setPageSize(newSize); setCurrentPage(1); }} />
         </div>
         <BulkActionsBar selectedIds={selectedIds} onClearSelection={handleClearSelection} onBulkStatusChange={handleBulkStatusChange} onBulkAssignCounsellor={handleBulkAssignCounsellor} onBulkDelete={() => setDeleteConfirmData({ open: true, lead: null, isBulk: true })} onExportSelected={() => handleExportCSV(true)} canDelete={currentRole.permissions.canDeleteLeads} canAssign={currentRole.permissions.canAssignCounsellor} />
@@ -715,6 +790,8 @@ export function CRMPage({ embedded = false }) {
           onDensityChange={setDensity}
           onExportCSV={() => handleExportCSV(false)}
           onImportCSV={handleImportCSV}
+          onDistributeUnassigned={() => setIsDistributeModalOpen(true)}
+          unassignedCount={unassignedCount}
           totalResultsCount={processedLeads.length}
         />
 
@@ -852,49 +929,241 @@ export function CRMPage({ embedded = false }) {
         count={selectedIds.length}
         onConfirm={handleDeleteLeadConfirm}
       />
-      {/* Import Config Dialog */}
-      <Dialog open={!!importFile} onOpenChange={(open) => !open && setImportFile(null)}>
-        <DialogContent>
+      {/* Enhanced Import Config Dialog */}
+      <Dialog open={!!importFile} onOpenChange={(open) => !open && !isImporting && setImportFile(null)}>
+        <DialogContent size="md">
           <DialogHeader>
             <DialogTitle>Import Leads</DialogTitle>
             <DialogDescription>
-              Leads will be automatically distributed equally among your counsellors via the Round Robin method.
+              Upload leads into a designated unit with automatic Round Robin distribution or as unassigned records.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-slate-600 mb-4">
-              File: <span className="font-semibold">{importFile?.name}</span>
-            </p>
-            {currentRoleKey === "ADMIN" && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Select Unit for Distribution</label>
+
+          <div className="py-3 space-y-4">
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs flex items-center justify-between">
+              <span className="text-slate-500 font-medium">Selected File:</span>
+              <span className="font-semibold text-slate-800 truncate max-w-[220px]">{importFile?.name}</span>
+            </div>
+
+            {/* Target Unit Selection */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                Target Unit
+              </label>
+              {currentRoleKey === "ADMIN" ? (
                 <select
                   value={importUnit}
                   onChange={(e) => setImportUnit(e.target.value)}
-                  className="w-full h-10 rounded-lg border border-slate-300 px-3 text-sm focus:border-[#8B1E1E] focus:outline-none focus:ring-1 focus:ring-[#8B1E1E]"
+                  className="w-full h-9 rounded-xl border border-slate-300 px-3 text-xs bg-white focus:border-[#8B1E1E] focus:outline-none focus:ring-1 focus:ring-[#8B1E1E]"
                 >
-                  <option value="" disabled>Select a unit</option>
-                  {CENTERS.map((c) => (
-                    <option key={c} value={c}>{c}</option>
+                  <option value="" disabled>Select target unit</option>
+                  {availableUnits.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name} {Boolean(u.round_robin_enabled) ? "(Round Robin Enabled)" : "(Manual Only)"}
+                    </option>
                   ))}
                 </select>
-                <p className="text-xs text-slate-500">
-                  Leads will be assigned round-robin to the counsellors in this unit.
-                </p>
-              </div>
-            )}
-            {(currentRoleKey === "UNIT_HEAD") && (
-              <div className="rounded-lg bg-blue-50 border border-blue-100 p-3">
-                <p className="text-sm text-blue-700 font-medium">
-                  Leads will be automatically distributed round-robin to your unit's counsellors.
-                </p>
-              </div>
-            )}
+              ) : (
+                <div className="px-3 py-2 bg-purple-50 rounded-xl border border-purple-100 flex items-center justify-between">
+                  <span className="text-xs font-semibold text-purple-900">
+                    {selectedUnitObj?.name || session?.unit_name || "Your Assigned Unit"}
+                  </span>
+                  <span className="text-[10px] text-purple-700 font-medium px-2 py-0.5 bg-white rounded-md border border-purple-200">
+                    Mapped Unit
+                  </span>
+                </div>
+              )}
+
+              {selectedUnitObj && (
+                <div className="mt-2 flex items-center gap-2 text-[11px]">
+                  <span className="text-slate-500">Distribution Setting:</span>
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded-md font-semibold text-[10px] border ${
+                      Boolean(selectedUnitObj.round_robin_enabled)
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : "bg-amber-50 text-amber-700 border-amber-200"
+                    }`}
+                  >
+                    {Boolean(selectedUnitObj.round_robin_enabled) ? "Round Robin Active" : "Manual Assignment Only"}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Upload Options: Upload & Distribute vs Upload Only (Requirement 3) */}
+            <div className="space-y-2 pt-1">
+              <label className="block text-xs font-semibold text-slate-700">
+                Distribution Action
+              </label>
+
+              <label
+                className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                  importMode === "distribute"
+                    ? "bg-rose-50/50 border-[#8B1E1E] shadow-2xs"
+                    : "bg-white border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="importMode"
+                  value="distribute"
+                  checked={importMode === "distribute"}
+                  onChange={() => setImportMode("distribute")}
+                  className="mt-0.5 accent-[#8B1E1E]"
+                />
+                <div>
+                  <p className="text-xs font-bold text-slate-900">Upload & Distribute</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Sequentially and evenly distribute authentic leads among active eligible counsellors in this unit via Round Robin.
+                  </p>
+                </div>
+              </label>
+
+              <label
+                className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                  importMode === "upload_only"
+                    ? "bg-rose-50/50 border-[#8B1E1E] shadow-2xs"
+                    : "bg-white border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="importMode"
+                  value="upload_only"
+                  checked={importMode === "upload_only"}
+                  onChange={() => setImportMode("upload_only")}
+                  className="mt-0.5 accent-[#8B1E1E]"
+                />
+                <div>
+                  <p className="text-xs font-bold text-slate-900">Upload Only (Retain as Unassigned)</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Save leads to this unit without assigning. You can distribute them sequentially later without affecting existing assignments.
+                  </p>
+                </div>
+              </label>
+            </div>
           </div>
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setImportFile(null)}>Cancel</Button>
-            <Button onClick={handleConfirmImport} disabled={!importUnit && currentRoleKey === "ADMIN"} className="bg-[#8B1E1E] hover:bg-[#6d1414] text-white">
-              Confirm & Import
+            <Button variant="outline" size="sm" onClick={() => setImportFile(null)} disabled={isImporting}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleConfirmImport}
+              disabled={isImporting || (!importUnit && currentRoleKey === "ADMIN")}
+              className="bg-[#8B1E1E] hover:bg-[#6d1414] text-white"
+            >
+              {isImporting ? "Processing Import..." : importMode === "distribute" ? "Upload & Distribute" : "Upload Only"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Distribute Unassigned Leads Confirmation Dialog (Requirement 3) */}
+      <Dialog open={isDistributeModalOpen} onOpenChange={(open) => !open && !isDistributing && setIsDistributeModalOpen(false)}>
+        <DialogContent size="sm">
+          <DialogHeader>
+            <DialogTitle>Distribute Unassigned Leads</DialogTitle>
+            <DialogDescription>
+              Sequentially distribute unassigned leads among eligible active counsellors via Unit Round Robin.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4 space-y-3">
+            <div className="p-3.5 bg-blue-50 rounded-xl border border-blue-100 space-y-1">
+              <p className="text-xs text-blue-900 font-semibold">
+                Unassigned Leads Ready for Distribution: {unassignedCount}
+              </p>
+              <p className="text-[11px] text-blue-700">
+                Rotation will seamlessly continue from the last assigned counsellor in this unit.
+              </p>
+            </div>
+
+            <p className="text-[11px] text-slate-500">
+              Only unassigned leads will be processed. All existing leads and historical assignments will remain untouched.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setIsDistributeModalOpen(false)} disabled={isDistributing}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleDistributeUnassignedLeads}
+              disabled={isDistributing || unassignedCount === 0}
+              className="bg-[#8B1E1E] hover:bg-[#6d1414] text-white"
+            >
+              {isDistributing ? "Distributing..." : `Distribute ${unassignedCount} Leads`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Distribution Summary Dialog (Requirement 3) */}
+      <Dialog open={Boolean(distributionSummary)} onOpenChange={(open) => !open && setDistributionSummary(null)}>
+        <DialogContent size="md">
+          <DialogHeader>
+            <div className="flex items-center justify-between pr-6">
+              <DialogTitle>Distribution Summary</DialogTitle>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                {distributionSummary?.mode === "distribute" ? "Round Robin Distributed" : "Uploaded as Unassigned"}
+              </span>
+            </div>
+            <DialogDescription>
+              Unit: <span className="font-semibold text-slate-800">{distributionSummary?.unit?.name || "Unit"}</span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-3 space-y-4">
+            {/* Counts Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-center">
+                <p className="text-xs text-slate-500 font-medium">Total Processed</p>
+                <p className="text-xl font-bold text-slate-900 mt-0.5">{distributionSummary?.totalUploaded ?? 0}</p>
+              </div>
+              <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 text-center">
+                <p className="text-xs text-blue-600 font-medium">Assigned</p>
+                <p className="text-xl font-bold text-blue-800 mt-0.5">{distributionSummary?.totalAssigned ?? 0}</p>
+              </div>
+              <div className="p-3 bg-amber-50 rounded-xl border border-amber-100 text-center">
+                <p className="text-xs text-amber-600 font-medium">Unassigned</p>
+                <p className="text-xl font-bold text-amber-800 mt-0.5">{distributionSummary?.totalUnassigned ?? 0}</p>
+              </div>
+              <div className="p-3 bg-purple-50 rounded-xl border border-purple-100 text-center">
+                <p className="text-xs text-purple-600 font-medium">Duplicates</p>
+                <p className="text-xl font-bold text-purple-800 mt-0.5">{distributionSummary?.totalDuplicates ?? 0}</p>
+              </div>
+            </div>
+
+            {/* Counsellor Breakdown */}
+            {distributionSummary?.assignmentsByCounsellor && Object.keys(distributionSummary.assignmentsByCounsellor).length > 0 ? (
+              <div className="border border-slate-200 rounded-xl p-3 bg-white">
+                <h4 className="text-xs font-bold text-slate-800 mb-2 uppercase tracking-wide">
+                  Counsellor Assignment Breakdown
+                </h4>
+                <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                  {Object.entries(distributionSummary.assignmentsByCounsellor).map(([name, count]) => (
+                    <div key={name} className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-lg bg-slate-50">
+                      <span className="font-semibold text-slate-800">{name}</span>
+                      <span className="font-bold text-[#8B1E1E] bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100">
+                        {count} {count === 1 ? "lead" : "leads"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : distributionSummary?.totalUnassigned > 0 ? (
+              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800">
+                All {distributionSummary.totalUnassigned} leads were retained as unassigned. You can distribute them anytime using the &quot;Distribute Unassigned&quot; button.
+              </div>
+            ) : null}
+          </div>
+
+          <DialogFooter>
+            <Button size="sm" onClick={() => setDistributionSummary(null)} className="bg-[#8B1E1E] hover:bg-[#6d1414] text-white">
+              Done
             </Button>
           </DialogFooter>
         </DialogContent>

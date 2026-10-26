@@ -22,46 +22,87 @@ export async function GET(request) {
     // First try request.cookies (often more reliable in edge/Next.js API routes)
     let sessionCookieValue = request.cookies.get(SESSION_COOKIE)?.value;
     
-    // Fallback to cookies() just in case
+    // Fallback to cookies()
     if (!sessionCookieValue) {
       const cookieStore = await cookies();
       sessionCookieValue = cookieStore.get(SESSION_COOKIE)?.value;
     }
 
-    const session = parseSessionCookie(sessionCookieValue);
+    let session = parseSessionCookie(sessionCookieValue);
+
+    // Support client session header fallback
+    if (!session) {
+      const customHeader = request.headers.get("x-user-session");
+      if (customHeader) {
+        try {
+          session = JSON.parse(decodeURIComponent(customHeader));
+        } catch {}
+      }
+    }
 
     if (!session) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const { role, unit_id, name: userName } = session;
+    const { role, unit_id: sessionUnitId, id: userId, name: userName } = session;
 
     let whereClause = "";
     let params = [];
 
     if (role === "Admin") {
+      // Admin: View all leads system-wide
       whereClause = "";
     } else if (role === "UnitHead") {
-      if (unit_id) {
-        const [counsellorRows] = await db.query(
-          "SELECT name FROM users WHERE unit_id = ? AND role = 'Counsellor' AND is_active = 1",
-          [unit_id]
+      // Unit Head: View all leads assigned to counsellors mapped under their unit,
+      // plus unassigned leads belonging to their unit.
+      const [unitRows] = await db.query(
+        "SELECT id, name FROM units WHERE head_user_id = ? OR id = ?",
+        [userId, sessionUnitId || 0]
+      );
+
+      const unitIds = unitRows.map((u) => u.id);
+      const unitNames = unitRows.map((u) => u.name);
+
+      let counsellorNames = [];
+      if (unitIds.length > 0) {
+        const [counsellors] = await db.query(
+          `SELECT name FROM users WHERE unit_id IN (${unitIds.map(() => "?").join(", ")}) AND role = 'Counsellor'`,
+          unitIds
         );
-        if (counsellorRows.length > 0) {
-          const names = counsellorRows.map((r) => r.name);
-          const placeholders = names.map(() => "?").join(", ");
-          whereClause = `WHERE counsellor IN (${placeholders})`;
-          params = names;
-        } else {
-          return NextResponse.json({ success: true, leads: [] });
-        }
+        counsellorNames = counsellors.map((c) => c.name);
+      }
+
+      const orConditions = [];
+
+      // Leads assigned to counsellors mapped under their unit
+      if (counsellorNames.length > 0) {
+        const ph = counsellorNames.map(() => "?").join(", ");
+        orConditions.push(`counsellor IN (${ph})`);
+        params.push(...counsellorNames);
+      }
+
+      // Unassigned leads belonging to their unit (by unit_id or center name)
+      if (unitIds.length > 0) {
+        const idPh = unitIds.map(() => "?").join(", ");
+        const namePh = unitNames.map(() => "?").join(", ");
+        orConditions.push(
+          `((unit_id IN (${idPh}) OR center IN (${namePh})) AND (counsellor IS NULL OR counsellor = '' OR counsellor = 'Unassigned'))`
+        );
+        params.push(...unitIds, ...unitNames);
+      }
+
+      if (orConditions.length > 0) {
+        whereClause = `WHERE (${orConditions.join(" OR ")})`;
       } else {
-        whereClause = "WHERE counsellor = ?";
-        params = [userName];
+        return NextResponse.json({ success: true, leads: [] });
       }
     } else if (role === "Counsellor") {
-      whereClause = "WHERE (counsellor = ? OR counsellor IS NULL OR counsellor = '' OR counsellor = 'Unassigned')";
+      // Counselor: Strictly only leads assigned to their own bucket.
+      // Absolutely no other counselors' leads or unassigned leads.
+      whereClause = "WHERE counsellor = ?";
       params = [userName];
+    } else {
+      return NextResponse.json({ success: false, error: "Forbidden role" }, { status: 403 });
     }
 
     const [rows] = await db.query(

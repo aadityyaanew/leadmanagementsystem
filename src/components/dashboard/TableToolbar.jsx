@@ -36,9 +36,11 @@ export function TableToolbar({
   onDensityChange,
   onExportCSV,
   onImportCSV,
+  onDistributeUnassigned,
+  unassignedCount = 0,
   totalResultsCount,
 }) {
-  const { currentRoleKey } = useLeads();
+  const { currentRoleKey, currentRole } = useLeads();
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [dbOptions, setDbOptions] = useState({
     colleges: [],
@@ -213,22 +215,38 @@ export function TableToolbar({
             })}
           </DropdownMenu>
 
-          {/* Upload CSV */}
-          <label className="cursor-pointer inline-flex items-center justify-center gap-1.5 h-9 rounded-md px-3 text-xs font-semibold border border-input bg-white hover:bg-slate-50 text-slate-700 hover:text-[#8B1E1E] transition-colors border-slate-200">
-            <Upload className="h-3.5 w-3.5" />
-            <span>Upload CSV</span>
-            <input
-              type="file"
-              accept=".csv"
-              className="hidden"
-              onChange={(e) => {
-                if (e.target.files?.[0] && onImportCSV) {
-                  onImportCSV(e.target.files[0]);
-                  e.target.value = null;
-                }
-              }}
-            />
-          </label>
+          {/* Distribute Unassigned Leads (Admin & Unit Head) */}
+          {currentRoleKey !== "COUNSELLOR" && onDistributeUnassigned && unassignedCount > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onDistributeUnassigned}
+              className="gap-1.5 h-9 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border-purple-200"
+              title="Distribute unassigned leads sequentially via Round Robin"
+            >
+              <RefreshCw className="h-3.5 w-3.5 text-purple-600" />
+              <span>Distribute Unassigned ({unassignedCount})</span>
+            </Button>
+          )}
+
+          {/* Upload CSV (Admin & Unit Head only) */}
+          {currentRoleKey !== "COUNSELLOR" && (
+            <label className="cursor-pointer inline-flex items-center justify-center gap-1.5 h-9 rounded-md px-3 text-xs font-semibold border border-input bg-white hover:bg-slate-50 text-slate-700 hover:text-[#8B1E1E] transition-colors border-slate-200">
+              <Upload className="h-3.5 w-3.5" />
+              <span>Upload CSV</span>
+              <input
+                type="file"
+                accept=".csv"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files?.[0] && onImportCSV) {
+                    onImportCSV(e.target.files[0]);
+                    e.target.value = null;
+                  }
+                }}
+              />
+            </label>
+          )}
 
           {/* Export to CSV Button */}
           {currentRoleKey === "ADMIN" && (
@@ -359,25 +377,27 @@ export function TableToolbar({
               </select>
             </div>
 
-            {/* Counsellor */}
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                Counsellor
-              </label>
-              <select
-                value={filters.counsellor}
-                onChange={(e) => onFilterChange("counsellor", e.target.value)}
-                className="w-full h-8 rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-800 truncate focus:outline-none focus:ring-1 focus:ring-[#8B1E1E]"
-              >
-                <option value="ALL">All Counsellors</option>
-                {dbOptions.counsellors.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-                <option value="Unassigned">Unassigned</option>
-              </select>
-            </div>
+            {/* Counsellor (Admin and Unit Head only) */}
+            {currentRoleKey !== "COUNSELLOR" && (
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                  Counsellor
+                </label>
+                <select
+                  value={filters.counsellor}
+                  onChange={(e) => onFilterChange("counsellor", e.target.value)}
+                  className="w-full h-8 rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-800 truncate focus:outline-none focus:ring-1 focus:ring-[#8B1E1E]"
+                >
+                  <option value="ALL">All Counsellors</option>
+                  {dbOptions.counsellors.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                  <option value="Unassigned">Unassigned</option>
+                </select>
+              </div>
+            )}
           </div>
         </div>
       )}

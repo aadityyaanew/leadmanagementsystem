@@ -94,6 +94,7 @@ export function AddEditLeadDialog({
   }, [formData.college, options]);
 
   // Initialize form when editing or opening
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (editingLead) {
       setFormData({

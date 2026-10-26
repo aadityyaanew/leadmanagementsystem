@@ -87,13 +87,27 @@ function UnitCard({ unit, counsellors, stats }) {
         </span>
       </div>
 
-      {/* Unit Head */}
-      {unit.head_name && (
-        <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-purple-50/50 rounded-xl border border-purple-100">
-          <UserCog className="h-3.5 w-3.5 text-purple-500 flex-shrink-0" />
-          <span className="text-[11px] text-purple-700 font-medium">Head: {unit.head_name}</span>
+      {/* Unit Head & Distribution Config */}
+      <div className="space-y-1.5 mb-4">
+        {unit.head_name && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-50/50 rounded-xl border border-purple-100">
+            <UserCog className="h-3.5 w-3.5 text-purple-500 flex-shrink-0" />
+            <span className="text-[11px] text-purple-700 font-medium">Head: {unit.head_name}</span>
+          </div>
+        )}
+        <div className="flex items-center justify-between text-xs px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100">
+          <span className="text-slate-500 text-[11px] font-medium">Distribution</span>
+          <span
+            className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold border ${
+              Boolean(unit.round_robin_enabled)
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                : "bg-slate-100 text-slate-600 border-slate-200"
+            }`}
+          >
+            {Boolean(unit.round_robin_enabled) ? "Round Robin Active" : "Manual Assignment"}
+          </span>
         </div>
-      )}
+      </div>
 
       {/* Lead Stats */}
       <div className="grid grid-cols-3 gap-2 mb-4">

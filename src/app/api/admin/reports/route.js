@@ -103,60 +103,66 @@ export async function GET(request) {
 
     const { role: userRole, name: userName, id: userId, unit_id: userUnitId } = session;
 
-    // ── 2. Determine Scope & Allowed Counsellors by Role ─────────────────────
     let roleConditions = [];
     let roleParams = [];
     let assignedCounsellorNames = [];
     let availableUnitHeads = [];
+    let allUnitsList = [];
 
     if (userRole === "Counsellor") {
       // Counsellor can only access their own calls
       assignedCounsellorNames = [userName];
       roleConditions.push(`(
         cl.counsellor_id = ? OR 
-        cl.counsellor_name = ? OR 
-        cl.counsellor_name LIKE ? OR 
-        ? LIKE CONCAT('%', cl.counsellor_name, '%')
+        cl.counsellor_name = ?
       )`);
-      roleParams.push(userId, userName, `%${userName}%`, userName);
+      roleParams.push(userId, userName);
 
     } else if (userRole === "UnitHead") {
-      // Unit Head can access only assigned counsellors in their unit from users table
+      // Unit Head can access only assigned counsellors and calls mapped under their unit
+      const [unitRows] = await db.query(
+        "SELECT id, name FROM units WHERE head_user_id = ? OR id = ?",
+        [userId, userUnitId || 0]
+      );
+      const unitIds = unitRows.map((u) => u.id);
+
       const [unitCounsellors] = await db.query(
         `SELECT u.id, u.name, u.employee_id 
          FROM users u
          WHERE u.role = 'Counsellor'
-           AND (
-             u.unit_id IN (SELECT id FROM units WHERE head_user_id = ? OR id = ?)
-             OR u.unit_id = ?
-           )
-           AND u.is_active = 1
+           AND (u.unit_id IN (${unitIds.length > 0 ? unitIds.map(() => "?").join(",") : "NULL"}) OR u.unit_id = ?)
          ORDER BY u.name ASC`,
-        [userId, userUnitId || 0, userUnitId || 0]
+        [...unitIds, userUnitId || 0]
       );
 
       const allNames = unitCounsellors.map((c) => c.name);
       assignedCounsellorNames = allNames;
 
-      if (allNames.length > 0) {
-        const placeholders = allNames.map(() => "?").join(", ");
-        roleConditions.push(`(
-          cl.counsellor_name IN (${placeholders}) OR
-          cl.counsellor_id IN (${unitCounsellors.map(() => "?").join(", ")})
-        )`);
-        roleParams.push(...allNames, ...unitCounsellors.map((c) => c.id));
+      if (allNames.length > 0 || unitIds.length > 0) {
+        const conditions = [];
+        if (allNames.length > 0) {
+          conditions.push(`cl.counsellor_name IN (${allNames.map(() => "?").join(", ")})`);
+          roleParams.push(...allNames);
+          conditions.push(`cl.counsellor_id IN (${unitCounsellors.map(() => "?").join(", ")})`);
+          roleParams.push(...unitCounsellors.map((c) => c.id));
+        }
+        if (unitIds.length > 0) {
+          conditions.push(`cl.unit_id IN (${unitIds.map(() => "?").join(", ")})`);
+          roleParams.push(...unitIds);
+        }
+        roleConditions.push(`(${conditions.join(" OR ")})`);
       } else {
         roleConditions.push("1 = 0");
       }
 
     } else {
-      // Admin: Organization-wide access - ONLY real active registered counsellors from users table
+      // Admin: Organization-wide access
       const [allCounsellorRows] = await db.query(
         "SELECT id, name FROM users WHERE role = 'Counsellor' AND is_active = 1 ORDER BY name ASC"
       );
       assignedCounsellorNames = allCounsellorRows.map((c) => c.name).filter(Boolean);
 
-      // Load all Unit Heads for the Admin filter from users table
+      // Load all Unit Heads for the Admin filter
       const [uhRows] = await db.query(
         `SELECT u.id, u.name, u.unit_id, un.name AS unit_name
          FROM users u
@@ -165,12 +171,20 @@ export async function GET(request) {
          ORDER BY u.name ASC`
       );
       availableUnitHeads = uhRows;
+
+      // Load all Units for the Admin filter
+      const [uRows] = await db.query(
+        "SELECT id, name FROM units ORDER BY name ASC"
+      );
+      allUnitsList = uRows;
     }
 
     // ── 3. Parse Filter Parameters ──────────────────────────────────────────
     const dateRange = searchParams.get("dateRange") || "today"; // today, yesterday, week, month, this_month, all, custom
     const requestedCounsellor = searchParams.get("counsellor");
     const requestedUnitHead = searchParams.get("unitHead"); // Admin only
+    const requestedUnit = searchParams.get("unit"); // Admin only
+    const requestedDisposition = searchParams.get("disposition");
     const type = searchParams.get("type"); // Phone Call, Email Follow-up, ALL
     const outcome = searchParams.get("outcome"); // connected, unanswered, ALL
     const startDate = searchParams.get("startDate");
@@ -183,9 +197,8 @@ export async function GET(request) {
     // Counsellor Filter
     if (requestedCounsellor && requestedCounsellor !== "ALL") {
       if (userRole === "Counsellor") {
-        // Ignore override - locked to self
+        // Locked to self
       } else if (userRole === "UnitHead") {
-        // Verify requested counsellor belongs to this unit head
         const match = assignedCounsellorNames.find(
           (name) => name.toLowerCase() === requestedCounsellor.toLowerCase()
         );
@@ -194,10 +207,15 @@ export async function GET(request) {
           filterParams.push(match, `%${match}%`);
         }
       } else {
-        // Admin
         filterConditions.push("(cl.counsellor_name = ? OR cl.counsellor_name LIKE ?)");
         filterParams.push(requestedCounsellor, `%${requestedCounsellor}%`);
       }
+    }
+
+    // Unit Filter (Admin only)
+    if (userRole === "Admin" && requestedUnit && requestedUnit !== "ALL") {
+      filterConditions.push("(cl.unit_id = ? OR cl.unit_name = ? OR cl.unit_id IN (SELECT id FROM units WHERE name = ?))");
+      filterParams.push(requestedUnit, requestedUnit, requestedUnit);
     }
 
     // Unit Head Filter (Admin only)
@@ -221,6 +239,12 @@ export async function GET(request) {
     if (type && type !== "ALL") {
       filterConditions.push("cl.call_type = ?");
       filterParams.push(type);
+    }
+
+    // Exact Disposition Filter (Requirement 6)
+    if (requestedDisposition && requestedDisposition !== "ALL") {
+      filterConditions.push("cl.disposition = ?");
+      filterParams.push(requestedDisposition);
     }
 
     // Call Outcome Filter
@@ -281,7 +305,7 @@ export async function GET(request) {
     const [todayTotals] = await db.query(
       `SELECT 
          COUNT(*) AS total_today,
-         COUNT(DISTINCT NULLIF(TRIM(cl.lead_phone), '')) AS unique_today,
+         COUNT(DISTINCT COALESCE(NULLIF(TRIM(cl.lead_id), ''), NULLIF(TRIM(cl.lead_phone), ''))) AS unique_today,
          SUM(CASE WHEN cl.call_type = 'Phone Call' THEN 1 ELSE 0 END) AS phone_today,
          SUM(CASE WHEN cl.call_type = 'Email Follow-up' THEN 1 ELSE 0 END) AS email_today,
          SUM(CASE WHEN ${CONNECTED_SQL} THEN 1 ELSE 0 END) AS connected_today,
@@ -297,7 +321,7 @@ export async function GET(request) {
     const [weekTotals] = await db.query(
       `SELECT 
          COUNT(*) AS total_week,
-         COUNT(DISTINCT NULLIF(TRIM(cl.lead_phone), '')) AS unique_week,
+         COUNT(DISTINCT COALESCE(NULLIF(TRIM(cl.lead_id), ''), NULLIF(TRIM(cl.lead_phone), ''))) AS unique_week,
          SUM(CASE WHEN ${CONNECTED_SQL} THEN 1 ELSE 0 END) AS connected_week,
          SUM(CASE WHEN ${UNANSWERED_SQL} THEN 1 ELSE 0 END) AS unanswered_week,
          SUM(COALESCE(cl.duration, 0)) AS duration_week
@@ -311,7 +335,7 @@ export async function GET(request) {
     const [monthTotals] = await db.query(
       `SELECT 
          COUNT(*) AS total_month,
-         COUNT(DISTINCT NULLIF(TRIM(cl.lead_phone), '')) AS unique_month,
+         COUNT(DISTINCT COALESCE(NULLIF(TRIM(cl.lead_id), ''), NULLIF(TRIM(cl.lead_phone), ''))) AS unique_month,
          SUM(CASE WHEN ${CONNECTED_SQL} THEN 1 ELSE 0 END) AS connected_month,
          SUM(CASE WHEN ${UNANSWERED_SQL} THEN 1 ELSE 0 END) AS unanswered_month,
          SUM(COALESCE(cl.duration, 0)) AS duration_month
@@ -322,7 +346,6 @@ export async function GET(request) {
     );
 
     // E. Date-wise Summary (Aggregated by day in IST for trends & tables)
-    // Limits to last 30 days if range is 'all' or 'month'
     let dateWiseWhere = roleConditions.length > 0 ? [...roleConditions] : [];
     let dateWiseParams = [...roleParams];
     if (requestedCounsellor && requestedCounsellor !== "ALL") {
@@ -343,7 +366,7 @@ export async function GET(request) {
       `SELECT 
          DATE_FORMAT(CONVERT_TZ(cl.created_at, '+00:00', '+05:30'), '%Y-%m-%d') AS call_date,
          COUNT(*) AS total_calls,
-         COUNT(DISTINCT NULLIF(TRIM(cl.lead_phone), '')) AS unique_calls,
+         COUNT(DISTINCT COALESCE(NULLIF(TRIM(cl.lead_id), ''), NULLIF(TRIM(cl.lead_phone), ''))) AS unique_calls,
          SUM(CASE WHEN cl.call_type = 'Phone Call' THEN 1 ELSE 0 END) AS phone_calls,
          SUM(CASE WHEN cl.call_type = 'Email Follow-up' THEN 1 ELSE 0 END) AS email_calls,
          SUM(CASE WHEN ${CONNECTED_SQL} THEN 1 ELSE 0 END) AS connected_calls,
@@ -364,10 +387,10 @@ export async function GET(request) {
         `SELECT 
            u.name AS counsellor_name,
            COUNT(cl.id) AS total_calls,
-           COUNT(DISTINCT NULLIF(TRIM(cl.lead_phone), '')) AS unique_calls,
-           COUNT(DISTINCT CASE WHEN cl.id IS NOT NULL AND DATE(CONVERT_TZ(cl.created_at, '+00:00', '+05:30')) = DATE(CONVERT_TZ(NOW(), '+00:00', '+05:30')) THEN NULLIF(TRIM(cl.lead_phone), '') END) AS today_unique_calls,
-           COUNT(DISTINCT CASE WHEN cl.id IS NOT NULL AND DATE(CONVERT_TZ(cl.created_at, '+00:00', '+05:30')) >= DATE_SUB(DATE(CONVERT_TZ(NOW(), '+00:00', '+05:30')), INTERVAL 6 DAY) THEN NULLIF(TRIM(cl.lead_phone), '') END) AS week_unique_calls,
-           COUNT(DISTINCT CASE WHEN cl.id IS NOT NULL AND DATE(CONVERT_TZ(cl.created_at, '+00:00', '+05:30')) >= DATE_SUB(DATE(CONVERT_TZ(NOW(), '+00:00', '+05:30')), INTERVAL 29 DAY) THEN NULLIF(TRIM(cl.lead_phone), '') END) AS month_unique_calls,
+           COUNT(DISTINCT COALESCE(NULLIF(TRIM(cl.lead_id), ''), NULLIF(TRIM(cl.lead_phone), ''))) AS unique_calls,
+           COUNT(DISTINCT CASE WHEN cl.id IS NOT NULL AND DATE(CONVERT_TZ(cl.created_at, '+00:00', '+05:30')) = DATE(CONVERT_TZ(NOW(), '+00:00', '+05:30')) THEN COALESCE(NULLIF(TRIM(cl.lead_id), ''), NULLIF(TRIM(cl.lead_phone), '')) END) AS today_unique_calls,
+           COUNT(DISTINCT CASE WHEN cl.id IS NOT NULL AND DATE(CONVERT_TZ(cl.created_at, '+00:00', '+05:30')) >= DATE_SUB(DATE(CONVERT_TZ(NOW(), '+00:00', '+05:30')), INTERVAL 6 DAY) THEN COALESCE(NULLIF(TRIM(cl.lead_id), ''), NULLIF(TRIM(cl.lead_phone), '')) END) AS week_unique_calls,
+           COUNT(DISTINCT CASE WHEN cl.id IS NOT NULL AND DATE(CONVERT_TZ(cl.created_at, '+00:00', '+05:30')) >= DATE_SUB(DATE(CONVERT_TZ(NOW(), '+00:00', '+05:30')), INTERVAL 29 DAY) THEN COALESCE(NULLIF(TRIM(cl.lead_id), ''), NULLIF(TRIM(cl.lead_phone), '')) END) AS month_unique_calls,
            SUM(CASE WHEN cl.id IS NOT NULL AND DATE(CONVERT_TZ(cl.created_at, '+00:00', '+05:30')) = DATE(CONVERT_TZ(NOW(), '+00:00', '+05:30')) THEN 1 ELSE 0 END) AS today_calls,
            SUM(CASE WHEN cl.id IS NOT NULL AND DATE(CONVERT_TZ(cl.created_at, '+00:00', '+05:30')) >= DATE_SUB(DATE(CONVERT_TZ(NOW(), '+00:00', '+05:30')), INTERVAL 6 DAY) THEN 1 ELSE 0 END) AS week_calls,
            SUM(CASE WHEN cl.id IS NOT NULL AND DATE(CONVERT_TZ(cl.created_at, '+00:00', '+05:30')) >= DATE_SUB(DATE(CONVERT_TZ(NOW(), '+00:00', '+05:30')), INTERVAL 29 DAY) THEN 1 ELSE 0 END) AS month_calls,
@@ -385,7 +408,24 @@ export async function GET(request) {
       counsellorStatsRows = rows;
     }
 
-    // G. Active Counsellors Today count
+    // G. Disposition-wise Totals Reconciliation (Requirement 6)
+    const [dispositionRows] = await db.query(
+      `SELECT 
+         COALESCE(NULLIF(TRIM(cl.disposition), ''), 'Unknown') AS disposition,
+         COUNT(*) AS count
+       FROM call_logs cl
+       ${filteredWhere}
+       GROUP BY disposition
+       ORDER BY count DESC`,
+      filterParams
+    );
+
+    // H. Load available distinct dispositions for filter dropdown
+    const [distinctDispositions] = await db.query(
+      "SELECT DISTINCT disposition FROM call_logs WHERE disposition IS NOT NULL AND disposition != '' ORDER BY disposition ASC"
+    );
+
+    // I. Active Counsellors Today count
     const activeCounsellorsToday = counsellorStatsRows.filter((c) => Number(c.today_calls) > 0).length;
 
     return NextResponse.json({
@@ -446,9 +486,15 @@ export async function GET(request) {
         unanswered_calls: Number(r.unanswered_calls) || 0,
         total_duration: Number(r.total_duration) || 0,
       })),
+      dispositionBreakdown: dispositionRows.map((d) => ({
+        disposition: d.disposition,
+        count: Number(d.count) || 0,
+      })),
       logs,
       counsellors: assignedCounsellorNames,
       unitHeads: availableUnitHeads,
+      units: allUnitsList,
+      availableDispositions: distinctDispositions.map((d) => d.disposition),
     });
   } catch (error) {
     console.error("GET /api/admin/reports error:", error);

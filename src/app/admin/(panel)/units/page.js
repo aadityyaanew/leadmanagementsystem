@@ -11,7 +11,7 @@ import {
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 
-const EMPTY_FORM = { name: "", location: "", head_user_id: "" };
+const EMPTY_FORM = { name: "", location: "", head_user_id: "", round_robin_enabled: 1 };
 
 export default function AdminUnitsPage() {
   const { addToast } = useToast();
@@ -25,9 +25,11 @@ export default function AdminUnitsPage() {
   } = useCrud({ endpoint: "/api/admin/units", emptyForm: EMPTY_FORM, itemKey: "units" });
 
   useEffect(() => {
+    let isMounted = true;
     fetch("/api/admin/users").then(r => r.json()).then(d => {
-      if (d.success) setUsers(d.users);
+      if (isMounted && d.success) setUsers(d.users);
     }).catch(() => {});
+    return () => { isMounted = false; };
   }, []);
 
   const handleSave = async () => {
@@ -78,11 +80,29 @@ export default function AdminUnitsPage() {
                 </div>
                 <StatusBadge active={u.is_active} />
               </div>
-              {u.head_name && (
-                <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-purple-50/50 rounded-xl border border-purple-100">
-                  <span className="text-[11px] text-purple-700 font-medium">Head: {u.head_name}</span>
+
+              {/* Round Robin & Head info */}
+              <div className="space-y-1.5 mb-4">
+                <div className="flex items-center justify-between text-xs px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100">
+                  <span className="text-slate-500 font-medium">Lead Distribution</span>
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold border ${
+                      Boolean(u.round_robin_enabled)
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : "bg-slate-100 text-slate-600 border-slate-200"
+                    }`}
+                  >
+                    {Boolean(u.round_robin_enabled) ? "Round Robin" : "Manual Assignment"}
+                  </span>
                 </div>
-              )}
+
+                {u.head_name && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-50/50 rounded-xl border border-purple-100">
+                    <span className="text-[11px] text-purple-700 font-medium">Head: {u.head_name}</span>
+                  </div>
+                )}
+              </div>
+
               <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
                 <button onClick={() => openEdit(u)} className="flex-1 py-1.5 rounded-lg text-xs font-medium border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-1.5 justify-center">
                   Edit
@@ -109,6 +129,33 @@ export default function AdminUnitsPage() {
               <option value="">No head assigned</option>
               {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
             </AdminSelect>
+          </FormField>
+          <FormField label="Round Robin Lead Distribution">
+            <div className="space-y-2 pt-1">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="round_robin_enabled"
+                  checked={form.round_robin_enabled === 1 || form.round_robin_enabled === true || form.round_robin_enabled === "1"}
+                  onChange={() => setForm(p => ({ ...p, round_robin_enabled: 1 }))}
+                  className="accent-[#8B1E1E]"
+                />
+                <span className="text-xs text-slate-800 font-medium">Enable Round Robin</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="round_robin_enabled"
+                  checked={form.round_robin_enabled === 0 || form.round_robin_enabled === false || form.round_robin_enabled === "0"}
+                  onChange={() => setForm(p => ({ ...p, round_robin_enabled: 0 }))}
+                  className="accent-[#8B1E1E]"
+                />
+                <span className="text-xs text-slate-800 font-medium">Disable (Manual Assignment Only)</span>
+              </label>
+              <p className="text-[11px] text-slate-400 mt-1">
+                When enabled, leads can be sequentially distributed among eligible active counsellors in this unit.
+              </p>
+            </div>
           </FormField>
           <ModalActions onCancel={() => setModalOpen(false)} onSave={handleSave} saving={saving} saveLabel={editItem ? "Update" : "Add Unit"} />
         </div>

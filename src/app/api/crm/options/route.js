@@ -16,7 +16,7 @@ export async function GET() {
       "SELECT id, name, college_id FROM courses WHERE is_active = 1 ORDER BY name ASC"
     );
     const [units] = await db.query(
-      "SELECT id, name FROM units WHERE is_active = 1 ORDER BY name ASC"
+      "SELECT id, name, round_robin_enabled FROM units WHERE is_active = 1 ORDER BY name ASC"
     );
     const [counsellors] = await db.query(
       "SELECT id, name, unit_id FROM users WHERE role = 'Counsellor' AND is_active = 1 ORDER BY name ASC"
@@ -29,6 +29,7 @@ export async function GET() {
       rawCourses: courses, // { id, name, college_id } for college-specific filtering if needed
       rawColleges: colleges,
       units: units.map((u) => u.name),
+      rawUnits: units,
       counsellors: counsellors.map((c) => c.name),
     });
   } catch (error) {

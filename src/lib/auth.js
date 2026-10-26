@@ -1,21 +1,3 @@
-/**
- * @file auth.js
- * Central authentication utilities.
- *
- * Architecture decision: The existing system uses localStorage-based auth
- * (set by useLeads hook after /api/auth/login). We extend this with:
- * 1. A server-side session helper that reads from cookies (set during login).
- * 2. A client-side context that wraps the existing useLeads auth state.
- * 3. Centralized permission definitions that are the single source of truth.
- *
- * We deliberately preserve the existing localStorage auth flow used by the
- * CRMPage / Admin dashboard, and add cookie-based auth as a parallel
- * mechanism for server-side route validation.
- */
-
-// ─── Permission Definitions ──────────────────────────────────────────────────
-// Single source of truth for all role permissions.
-// Each key is a DB role string. Values are permission flags.
 
 export const ROLE_PERMISSIONS = {
   Admin: {

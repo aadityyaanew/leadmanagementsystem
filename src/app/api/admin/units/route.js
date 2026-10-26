@@ -6,7 +6,8 @@ export async function GET() {
     await initDatabase();
     const db = getDbPool();
     const [rows] = await db.query(
-      `SELECT u.*, usr.name AS head_name 
+      `SELECT u.*, usr.name AS head_name,
+        (SELECT COUNT(*) FROM users c WHERE c.unit_id = u.id AND c.role = 'Counsellor' AND c.is_active = 1) AS eligible_counsellors_count
        FROM units u 
        LEFT JOIN users usr ON u.head_user_id = usr.id 
        ORDER BY u.name ASC`
@@ -23,15 +24,17 @@ export async function POST(request) {
     await initDatabase();
     const db = getDbPool();
     const body = await request.json();
-    const { name, location, head_user_id } = body;
+    const { name, location, head_user_id, round_robin_enabled = 1 } = body;
 
     if (!name) {
       return NextResponse.json({ success: false, error: "Unit name is required" }, { status: 400 });
     }
 
+    const rrVal = round_robin_enabled === 0 || round_robin_enabled === false ? 0 : 1;
+
     const [result] = await db.query(
-      "INSERT INTO units (name, location, head_user_id) VALUES (?, ?, ?)",
-      [name, location || null, head_user_id || null]
+      "INSERT INTO units (name, location, head_user_id, round_robin_enabled) VALUES (?, ?, ?, ?)",
+      [name, location || null, head_user_id || null, rrVal]
     );
     return NextResponse.json({ success: true, id: result.insertId });
   } catch (error) {
@@ -45,7 +48,7 @@ export async function PUT(request) {
     await initDatabase();
     const db = getDbPool();
     const body = await request.json();
-    const { id, name, location, head_user_id, is_active } = body;
+    const { id, name, location, head_user_id, is_active, round_robin_enabled } = body;
 
     if (!id) {
       return NextResponse.json({ success: false, error: "id is required" }, { status: 400 });
@@ -58,6 +61,11 @@ export async function PUT(request) {
     if (location !== undefined) { updates.push("location = ?"); values.push(location); }
     if (head_user_id !== undefined) { updates.push("head_user_id = ?"); values.push(head_user_id || null); }
     if (is_active !== undefined) { updates.push("is_active = ?"); values.push(is_active); }
+    if (round_robin_enabled !== undefined) {
+      const rrVal = round_robin_enabled === 0 || round_robin_enabled === false ? 0 : 1;
+      updates.push("round_robin_enabled = ?");
+      values.push(rrVal);
+    }
 
     if (updates.length === 0) {
       return NextResponse.json({ success: false, error: "No fields to update" }, { status: 400 });

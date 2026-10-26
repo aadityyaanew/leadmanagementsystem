@@ -101,12 +101,17 @@ export function ReportsView({ forcedRole = null }) {
     logs: [],
     counsellors: [],
     unitHeads: [],
+    units: [],
+    dispositionBreakdown: [],
+    availableDispositions: [],
   });
 
   // Filter States
   const [dateRange, setDateRange] = useState("today"); // today, yesterday, week, month, this_month, all
+  const [selectedUnit, setSelectedUnit] = useState("ALL");
   const [selectedCounsellor, setSelectedCounsellor] = useState("ALL");
   const [selectedUnitHead, setSelectedUnitHead] = useState("ALL");
+  const [selectedDisposition, setSelectedDisposition] = useState("ALL");
   const [selectedOutcome, setSelectedOutcome] = useState("ALL"); // ALL, connected, unanswered
   const [selectedType, setSelectedType] = useState("ALL"); // ALL, Phone Call, Email Follow-up
   const [search, setSearch] = useState("");
@@ -135,6 +140,14 @@ export function ReportsView({ forcedRole = null }) {
         search,
       });
 
+      if (selectedUnit && selectedUnit !== "ALL") {
+        params.set("unit", selectedUnit);
+      }
+
+      if (selectedDisposition && selectedDisposition !== "ALL") {
+        params.set("disposition", selectedDisposition);
+      }
+
       if (isAdmin && selectedUnitHead && selectedUnitHead !== "ALL") {
         params.set("unitHead", selectedUnitHead);
       }
@@ -158,7 +171,7 @@ export function ReportsView({ forcedRole = null }) {
     } finally {
       setLoading(false);
     }
-  }, [dateRange, selectedCounsellor, selectedUnitHead, selectedOutcome, selectedType, search, isAdmin, session]);
+  }, [dateRange, selectedUnit, selectedCounsellor, selectedUnitHead, selectedDisposition, selectedOutcome, selectedType, search, isAdmin, session]);
 
   useEffect(() => {
     if (authLoaded) {
@@ -175,6 +188,7 @@ export function ReportsView({ forcedRole = null }) {
       "Lead ID",
       "Student Name",
       "Phone",
+      "Unit",
       "Counsellor",
       "Type",
       "Outcome / Disposition",
@@ -187,6 +201,7 @@ export function ReportsView({ forcedRole = null }) {
       l.lead_id,
       `"${(l.lead_name || "").replace(/"/g, '""')}"`,
       l.lead_phone || "",
+      `"${(l.unit_name || "").replace(/"/g, '""')}"`,
       `"${(l.counsellor_name || "").replace(/"/g, '""')}"`,
       l.call_type || "",
       `"${(l.disposition || "").replace(/"/g, '""')}"`,
@@ -485,6 +500,25 @@ export function ReportsView({ forcedRole = null }) {
               <option value="all">All Time</option>
             </select>
 
+            {/* Unit Filter (Admin & Unit Head) */}
+            {!isCounsellor && data.units && data.units.length > 0 && (
+              <select
+                value={selectedUnit}
+                onChange={(e) => {
+                  setSelectedUnit(e.target.value);
+                  setSelectedCounsellor("ALL"); // Reset counsellor filter
+                }}
+                className="h-8 rounded-xl border border-slate-200 bg-white px-2.5 text-xs text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-[#8B1E1E]/20 focus:border-[#8B1E1E]"
+              >
+                <option value="ALL">All Units</option>
+                {data.units.map((u) => (
+                  <option key={u.id || u.name} value={u.name}>
+                    {u.name}
+                  </option>
+                ))}
+              </select>
+            )}
+
             {/* Unit Head Filter (Admin Only) */}
             {isAdmin && data.unitHeads && data.unitHeads.length > 0 && (
               <select
@@ -522,7 +556,23 @@ export function ReportsView({ forcedRole = null }) {
               </select>
             )}
 
-            {/* Call Outcome Filter */}
+            {/* Specific Disposition Filter */}
+            {data.availableDispositions && data.availableDispositions.length > 0 && (
+              <select
+                value={selectedDisposition}
+                onChange={(e) => setSelectedDisposition(e.target.value)}
+                className="h-8 rounded-xl border border-slate-200 bg-white px-2.5 text-xs text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-[#8B1E1E]/20 focus:border-[#8B1E1E]"
+              >
+                <option value="ALL">All Dispositions</option>
+                {data.availableDispositions.map((disp) => (
+                  <option key={disp} value={disp}>
+                    {disp}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {/* Call Outcome Category Filter */}
             <select
               value={selectedOutcome}
               onChange={(e) => setSelectedOutcome(e.target.value)}
@@ -683,6 +733,80 @@ export function ReportsView({ forcedRole = null }) {
                   </table>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Call Disposition Breakdown & Reconciliation */}
+          {data.dispositionBreakdown && data.dispositionBreakdown.length > 0 && (
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+                <div>
+                  <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-[#8B1E1E]" />
+                    Call Disposition Reconciliation ({dateRange === "today" ? "Today" : dateRange.replace("_", " ").toUpperCase()})
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Exact reconciliation of total calls and unique leads contacted across each recorded call disposition
+                  </p>
+                </div>
+                {selectedDisposition !== "ALL" && (
+                  <button
+                    onClick={() => setSelectedDisposition("ALL")}
+                    className="self-start sm:self-auto text-xs text-[#8B1E1E] font-semibold hover:underline flex items-center gap-1"
+                  >
+                    <span>Clear Filter ({selectedDisposition})</span>
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {data.dispositionBreakdown.map((item) => {
+                  const meta = getOutcomeCategory(item.disposition);
+                  const Icon = meta.icon;
+                  const isSelected = selectedDisposition === item.disposition;
+                  const totalPeriodCalls = data.logs.length;
+                  const percent = totalPeriodCalls > 0 ? Math.round((item.total_calls / totalPeriodCalls) * 100) : 0;
+
+                  return (
+                    <button
+                      key={item.disposition}
+                      onClick={() => {
+                        setSelectedDisposition(isSelected ? "ALL" : item.disposition);
+                      }}
+                      className={`text-left p-3.5 rounded-xl border transition-all ${
+                        isSelected
+                          ? "bg-rose-50/70 border-[#8B1E1E] ring-1 ring-[#8B1E1E]"
+                          : "bg-slate-50/60 border-slate-200/80 hover:bg-slate-100/60 hover:border-slate-300"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-semibold ${meta.badgeClass}`}>
+                          <Icon className="h-3 w-3" />
+                          {item.disposition}
+                        </span>
+                        <span className="text-[11px] font-semibold text-slate-500">
+                          {percent}%
+                        </span>
+                      </div>
+                      <div className="flex items-baseline justify-between mt-1">
+                        <div>
+                          <div className="text-lg font-bold text-slate-900 leading-none">
+                            {item.total_calls}
+                          </div>
+                          <div className="text-[10px] text-slate-500 mt-0.5">Total Calls</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-semibold text-purple-700 leading-none">
+                            {item.unique_leads}
+                          </div>
+                          <div className="text-[10px] text-slate-400 mt-0.5">Unique Leads</div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 

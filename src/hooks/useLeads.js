@@ -46,6 +46,7 @@ export function useLeads() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchLeadsFromDb();
 
     try {
@@ -525,11 +526,69 @@ export function useLeads() {
     if (currentRole.permissions.viewAllLeads) {
       return leads;
     }
-    // For Counsellor role: show leads assigned to current counsellor or unassigned
-    return leads.filter(
-      (l) => l.counsellor === currentRole.name || !l.counsellor || l.counsellor === "Unassigned"
-    );
-  }, [leads, currentRole]);
+    // For Counsellor role: strictly leads assigned to their own bucket only
+    if (currentRoleKey === "COUNSELLOR") {
+      return leads.filter((l) => l.counsellor === currentRole.name);
+    }
+    // For Unit Head: backend already scopes to unit mapped counsellors + unassigned leads
+    return leads;
+  }, [leads, currentRole, currentRoleKey]);
+
+  // Bulk Upload with Distribution Mode
+  const uploadBulkLeads = useCallback(
+    async (leadsArray, { unitIdentifier, mode = "distribute" }) => {
+      try {
+        const res = await fetch("/api/leads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "bulkUpload",
+            leads: leadsArray,
+            unitIdentifier,
+            mode,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || "Failed to upload leads");
+        }
+        await fetchLeadsFromDb();
+        return data.summary;
+      } catch (err) {
+        console.error("uploadBulkLeads error:", err);
+        throw err;
+      }
+    },
+    [fetchLeadsFromDb]
+  );
+
+  // Distribute Unassigned Leads
+  const distributeUnassigned = useCallback(
+    async ({ unitId, unitName, leadIds = null }) => {
+      try {
+        const res = await fetch("/api/leads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "distributeUnassigned",
+            unitId,
+            unitName,
+            leadIds,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || "Failed to distribute leads");
+        }
+        await fetchLeadsFromDb();
+        return data.summary;
+      } catch (err) {
+        console.error("distributeUnassigned error:", err);
+        throw err;
+      }
+    },
+    [fetchLeadsFromDb]
+  );
 
   // Metrics computation for summary cards
   const metrics = useMemo(() => {
@@ -590,6 +649,9 @@ export function useLeads() {
     bulkAssignCounsellor,
     bulkDeleteLeads,
     resetToSampleData,
+    uploadBulkLeads,
+    distributeUnassigned,
+    refreshLeads: fetchLeadsFromDb,
     metrics,
   };
 }
